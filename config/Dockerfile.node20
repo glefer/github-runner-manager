@@ -1,0 +1,19 @@
+# Dockerfile pour runner Node 20 basé sur l'image de base runners_config.yaml
+ARG BASE_IMAGE=ghcr.io/actions/actions-runner:latest
+FROM ${BASE_IMAGE}
+
+USER root
+RUN apt update \
+	&& apt install -y curl \
+	&& rm -rf /var/lib/apt/lists/* \
+    && apt clean
+
+USER runner
+SHELL ["/bin/bash", "-c"]
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash \
+    && . ~/.nvm/nvm.sh \
+    && source ~/.bashrc \
+    && nvm install v20.14.0 \
+    && npm install -g yarn
+
+USER runner

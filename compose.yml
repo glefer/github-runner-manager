@@ -1,0 +1,9 @@
+services:
+  github-runner-manager:
+    build: .
+    image: github-runner-manager:latest
+    container_name: github-runner-manager
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./runners_config.yaml:/app/runners_config.yaml:ro
+      - ./config:/app/config:ro
