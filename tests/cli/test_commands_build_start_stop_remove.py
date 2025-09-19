@@ -200,3 +200,52 @@ def test_remove_runners(
         assert text in res.stdout
     for text in expected_absent:
         assert text not in res.stdout
+
+
+@patch("src.presentation.cli.commands.docker_service.build_runner_images")
+@patch("src.presentation.cli.commands.docker_service.check_base_image_update")
+@patch("src.presentation.cli.commands.typer.confirm")
+def test_check_base_image_update_build_outputs(
+    mock_confirm, mock_check_update, mock_build, cli
+):
+    """Covers lines printing skipped and error cases after building images
+    inside check_base_image_update interactive flow (lines 158 & 163).
+
+    Flow:
+      1. First confirm() returns True (apply update)
+      2. Second confirm() returns True (trigger build)
+      3. First call to check_base_image_update() -> update discovery
+      4. Second call (auto_update=True) -> updated result
+      5. build_runner_images() returns one skipped and one error to trigger prints.
+    """
+    # Two confirmations: update then build
+    mock_confirm.side_effect = [True, True]
+    # First call: update available
+    first_result = {
+        "current_version": "2.300.0",
+        "latest_version": "2.301.0",
+        "update_available": True,
+        "error": None,
+    }
+    # Second call: after auto_update
+    second_result = {
+        **first_result,
+        "updated": True,
+        "new_image": "ghcr.io/actions/runner:2.301.0",
+    }
+    mock_check_update.side_effect = [first_result, second_result]
+    mock_build.return_value = {
+        "built": [],
+        "skipped": [{"id": "r1", "reason": "No build_image specified"}],
+        "errors": [{"id": "r2", "reason": "Build failed"}],
+    }
+
+    res = cli.invoke(app, ["check-base-image-update"])
+    assert res.exit_code == 0
+    # Assert skipped line (line ~158) content fragments
+    assert "Pas d'image à builder" in res.stdout
+    assert "r1" in res.stdout
+    # Assert error line (line ~163) content fragments
+    assert "ERREUR" in res.stdout
+    assert "r2" in res.stdout
+    assert "Build failed" in res.stdout

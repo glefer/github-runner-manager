@@ -17,9 +17,12 @@ console = Console()
 
 
 @app.command()
-def build_runners_images() -> None:
-    """Build les images Docker custom des runners définis dans la config YAML."""
-    result = docker_service.build_runner_images()
+def build_runners_images(quiet: bool = False, progress: bool = True) -> None:
+    """Build les images Docker custom des runners définis dans la config YAML.
+
+    --quiet : réduit la verbosité du build en affichant uniquement les étapes et erreurs.
+    """
+    result = docker_service.build_runner_images(quiet=quiet, use_progress=progress)
 
     for built in result.get("built", []):
         console.print(
@@ -137,6 +140,29 @@ def check_base_image_update() -> None:
             console.print(
                 f"[green]base_image mis à jour vers {update_result['new_image']} dans runners_config.yaml[/green]"
             )
+            # Proposer de builder les images avec cette nouvelle base
+            if typer.confirm(
+                f"Voulez-vous builder les images des runners avec la nouvelle image {update_result.get('new_image')} ?"
+            ):
+                # use progress bar for interactive post-update builds
+                build_result = docker_service.build_runner_images(
+                    quiet=False, use_progress=True
+                )
+
+                for built in build_result.get("built", []):
+                    console.print(
+                        f"[green][SUCCESS] Image {built['image']} buildée depuis {built['dockerfile']}[/green]"
+                    )
+
+                for skipped in build_result.get("skipped", []):
+                    console.print(
+                        f"[yellow][INFO] Pas d'image à builder pour {skipped['id']} ({skipped['reason']})[/yellow]"
+                    )
+
+                for error in build_result.get("errors", []):
+                    console.print(
+                        f"[red][ERREUR] {error['id']}: {error['reason']}[/red]"
+                    )
     else:
         console.print("[yellow]Mise à jour annulée.[/yellow]")
 

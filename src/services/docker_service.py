@@ -10,8 +10,17 @@ from typing import Dict, List, Optional
 
 import docker
 import requests
+from rich.console import Console
+from rich.progress import (
+    BarColumn,
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    TimeElapsedColumn,
+)
 
 from src.services.config_service import ConfigService
+from src.services.docker_logger import DockerBuildLogger
 
 
 class DockerService:
@@ -99,19 +108,121 @@ class DockerService:
         dockerfile_path: str,
         build_dir: str,
         build_args: Dict[str, str] | None = None,
+        logger: Optional[callable] = None,
+        quiet: bool = False,
+        use_progress: bool = False,
     ) -> None:
         """Construit une image Docker (docker-py)."""
 
         client = docker.from_env()
         buildargs = build_args or {}
-        with open(dockerfile_path, "rb") as _:
-            client.images.build(
-                path=build_dir,
-                dockerfile=os.path.relpath(dockerfile_path, build_dir),
-                tag=image_tag,
-                buildargs=buildargs,
-                rm=True,
+        api_client = client.api
+        dockerfile_rel = os.path.relpath(dockerfile_path, build_dir)
+        stream = api_client.build(
+            path=build_dir,
+            dockerfile=dockerfile_rel,
+            tag=image_tag,
+            buildargs=buildargs,
+            rm=True,
+            decode=True,
+        )
+
+        # Use DockerBuildLogger if no custom logger provided
+        if logger is None:
+            logger = DockerBuildLogger.get_logger(quiet)
+
+        # If progress requested, create a progress bar and use it for logging
+        if use_progress:
+            console = Console()
+            progress = Progress(
+                SpinnerColumn(),
+                TextColumn("{task.description}"),
+                BarColumn(bar_width=None),
+                TextColumn("{task.completed}/{task.total}"),
+                TimeElapsedColumn(),
+                console=console,
             )
+
+            task_id = None
+            try:
+                with progress:
+                    for chunk in stream:
+                        if not chunk:
+                            continue
+                        if isinstance(chunk, dict):
+                            if "stream" in chunk:
+                                line = chunk["stream"].rstrip("\n")
+                                # detect Step X/Y : lines
+                                m = re.search(r"Step\s+(\d+)\/(\d+)", line)
+                                if m:
+                                    cur = int(m.group(1))
+                                    total = int(m.group(2))
+                                    if task_id is None:
+                                        task_id = progress.add_task(
+                                            "Building image", total=total
+                                        )
+                                    # progress expects completed value; ensure monotonic update
+                                    progress.update(
+                                        task_id, completed=cur, description=line
+                                    )
+                                else:
+                                    progress.console.log(line)
+                            elif "status" in chunk:
+                                msg = chunk.get("status", "")
+                                prog = chunk.get("progress", "")
+                                if prog:
+                                    progress.console.log(f"{msg} {prog}")
+                                else:
+                                    progress.console.log(msg)
+                            elif "error" in chunk:
+                                raise Exception(chunk.get("error"))
+                            else:
+                                progress.console.log(str(chunk))
+                        else:
+                            progress.console.log(str(chunk))
+                    # ensure task marked complete
+                    if task_id is not None:
+                        progress.update(task_id, completed=progress.tasks[0].total)
+            finally:
+                try:
+                    if hasattr(stream, "close"):
+                        stream.close()
+                except Exception:
+                    pass
+            return
+
+        # Iterate over the stream and log progress lines
+        try:
+            for chunk in stream:
+                # chunk is expected to be a dict when decode=True
+                if not chunk:
+                    continue
+                # Some messages contain 'stream' (plain text), others 'status' and 'progress'
+                if isinstance(chunk, dict):
+                    if "stream" in chunk:
+                        logger(chunk["stream"].rstrip("\n"))
+                    elif "status" in chunk:
+                        msg = chunk.get("status", "")
+                        prog = chunk.get("progress", "")
+                        if prog:
+                            logger(f"{msg} {prog}")
+                        else:
+                            logger(msg)
+                    elif "error" in chunk:
+                        # raise with docker error message
+                        raise Exception(chunk.get("error"))
+                    else:
+                        # Fallback to string representation
+                        logger(str(chunk))
+                else:
+                    logger(str(chunk))
+        finally:
+            # ensure generator is exhausted/closed
+            try:
+                if hasattr(stream, "close"):
+                    stream.close()
+            except Exception:
+                pass
 
     def exec_command(self, container: str, command: str) -> None:
         """Exécute une commande dans un conteneur en cours d'exécution (docker-py)."""
@@ -179,7 +290,9 @@ class DockerService:
             return [name for name in names if name_pattern in name]
         return names
 
-    def build_runner_images(self) -> dict:
+    def build_runner_images(
+        self, quiet: bool = False, use_progress: bool = False
+    ) -> dict:
         """Construit les images Docker personnalisées pour les runners."""
         config = self.config_service.load_config()
         runners = config.runners
@@ -225,6 +338,8 @@ class DockerService:
                     dockerfile_path=dockerfile_path,
                     build_dir=build_dir,
                     build_args={"BASE_IMAGE": base_image},
+                    quiet=quiet,
+                    use_progress=use_progress,
                 )
 
                 result["built"].append(

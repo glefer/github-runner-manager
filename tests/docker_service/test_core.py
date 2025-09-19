@@ -1,5 +1,3 @@
-"""Consolidated core tests for DockerService common behaviors."""
-
 from unittest.mock import MagicMock, mock_open, patch
 
 import docker
@@ -37,6 +35,11 @@ def test_container_exists(docker_service, mock_docker_client, exists):
     assert docker_service.container_exists("c") is exists
 
 
+def test_container_exists_notfound(docker_service, mock_docker_client):
+    mock_docker_client.containers.get.side_effect = docker.errors.NotFound("nf")
+    assert docker_service.container_exists("c") is False
+
+
 @pytest.mark.parametrize(
     "status,expected", [("running", True), ("stopped", False), (None, False)]
 )
@@ -63,7 +66,6 @@ def test_run_command(mock_run, docker_service):
 
 
 def test_container_running_notfound(docker_service, mock_docker_client):
-    # Simulate docker.errors.NotFound path
     mock_docker_client.containers.get.side_effect = docker.errors.NotFound("nf")
     assert docker_service.container_running("c") is False
 
@@ -74,12 +76,13 @@ def test_image_exists_exception(docker_service, mock_docker_client):
 
 
 def test_build_image_happy_path(docker_service):
-    # Ensure we call docker.images.build with relpath and buildargs
     with (
         patch("docker.from_env") as mock_docker,
         patch("builtins.open", mock_open(read_data=b"")),
     ):
         client = MagicMock()
+        api_client = MagicMock()
+        client.api = api_client
         mock_docker.return_value = client
         docker_service.build_image(
             image_tag="itroom/python:3.11-2.300.0",
@@ -87,8 +90,8 @@ def test_build_image_happy_path(docker_service):
             build_dir="config",
             build_args={"BASE_IMAGE": "ghcr.io/actions/runner:2.300.0"},
         )
-        client.images.build.assert_called_once()
-        args, kwargs = client.images.build.call_args
+        api_client.build.assert_called_once()
+        args, kwargs = api_client.build.call_args
         assert kwargs["path"] == "config"
         assert kwargs["dockerfile"] == "Dockerfile.node20"
         assert kwargs["tag"] == "itroom/python:3.11-2.300.0"
@@ -109,10 +112,8 @@ def test_run_container_command_building(docker_service):
         assert "-d" in called_cmd
         assert "--name" in called_cmd and "r1" in called_cmd
         assert "--restart" in called_cmd and "always" in called_cmd
-        # env vars flattened
         assert "-e" in called_cmd and "A=1" in called_cmd and "B=2" in called_cmd
         assert "itroom/python:3.11-2.300.0" in called_cmd
-        # command wrapping
         assert (
             "/bin/bash" in called_cmd and "-c" in called_cmd and "echo hi" in called_cmd
         )
@@ -149,6 +150,5 @@ def test_list_containers_filtering(docker_service):
 
 @patch("src.services.docker_service.DockerService.build_image")
 def test_build_runner_images_success(mock_build, docker_service, config_service):
-    # Use default config in fixture; build_image succeeds
     res = docker_service.build_runner_images()
     assert res["built"] and not res["errors"]

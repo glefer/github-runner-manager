@@ -33,7 +33,7 @@ test-durations:
 	$(POETRY) run pytest -q --durations=10
 
 test-cov:
-	$(POETRY) run pytest -q --cov=src --cov-report=term-missing
+	$(POETRY) run pytest -q --cov=src --cov-report=term-missing --cov-branch
 
 test-cov-html:
 	$(POETRY) run pytest -q --cov=src --cov-report=html

@@ -53,8 +53,9 @@ def valid_config():
 def config_file(valid_config, tmp_path):
     """Fixture pour un fichier de configuration temporaire."""
     config_path = tmp_path / "test_config.yaml"
+    # valid_config est un FullConfig, on le convertit en dict pour YAML
     with open(config_path, "w") as f:
-        yaml.dump(valid_config, f)
+        yaml.dump(valid_config.model_dump(), f)
     return str(config_path)
 
 
