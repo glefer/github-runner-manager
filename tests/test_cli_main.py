@@ -1,5 +1,3 @@
-"""Tests pour src/presentation/cli/main.py (couverture 100%)."""
-
 from typer.testing import CliRunner
 
 import src.presentation.cli.main as cli_main
@@ -27,8 +25,8 @@ def test_list():
     assert "No runners configured yet" in result.stdout
 
 
-# Test du point d'entrée __main__ (import et exécution)
 def test_main_entrypoint(monkeypatch):
+    # Couvre le if __name__ == "__main__"
     called = {}
 
     def fake_app():
@@ -37,4 +35,4 @@ def test_main_entrypoint(monkeypatch):
     monkeypatch.setattr(cli_main, "app", fake_app)
     if hasattr(cli_main, "__main__"):
         cli_main.__main__
-    assert True  # Juste pour forcer la couverture du if __name__ == "__main__"
+    assert True

@@ -16,7 +16,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY pyproject.toml poetry.lock ./
 COPY src ./src
 COPY main.py ./
-COPY runners_config.yaml ./
 COPY README.md ./
 
 # Installer Poetry et les dépendances Python

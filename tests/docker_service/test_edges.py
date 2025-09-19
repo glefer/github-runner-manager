@@ -1,5 +1,3 @@
-"""Consolidated edge-case tests for DockerService utils and tokens."""
-
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -18,7 +16,6 @@ def docker_service(config_service):
     return DockerService(config_service)
 
 
-# _get_registration_token success branches (org and repo)
 @patch("requests.post")
 @patch("os.getenv", return_value="tok")
 def test_get_registration_token_org(_getenv, mock_post, docker_service):
@@ -49,25 +46,15 @@ def test_get_registration_token_repo(_getenv, mock_post, docker_service):
     )
 
 
-# Failures: missing token, bad status, retries
 def test_get_registration_token_fail(docker_service):
-    """
-    Optimized test for token failure cases using context managers and patching time.sleep
-    to eliminate wait delays that slow down the test.
-    """
-    # Patch time.sleep to eliminate delays
     with patch("src.services.docker_service.time.sleep") as mock_sleep:
-        # Test case 1: Missing environment token
         with patch("os.getenv", return_value=None):
             with pytest.raises(Exception) as e:
                 docker_service._get_registration_token("https://github.com/test-org")
             assert "token GitHub n'est pas défini" in str(e.value)
-
-        # Test case 2: Bad status code - All cases at once
         mock_response = MagicMock()
         mock_response.status_code = 400
         mock_response.text = "fail"
-
         with (
             patch("os.getenv", return_value="tok"),
             patch("requests.post", return_value=mock_response),
@@ -76,12 +63,9 @@ def test_get_registration_token_fail(docker_service):
                 docker_service._get_registration_token(
                     "https://github.com/test-org", "tok"
                 )
-
-            # Make sure sleep was called exactly 3 times (retries)
             assert mock_sleep.call_count == 3
 
 
-# Utility-level docker ops
 def test_exec_start_stop_remove_and_exceptions(docker_service):
     from unittest.mock import mock_open
 
@@ -115,7 +99,6 @@ def test_exec_start_stop_remove_and_exceptions(docker_service):
             docker_service.remove_container("c")
 
 
-# get_latest_runner_version
 def test_get_latest_runner_version(docker_service):
     with patch("requests.get") as mock_get:
         resp = MagicMock()

@@ -61,7 +61,14 @@ def test_check_base_image_update(
         mock_check.return_value = first_result
     else:
         mock_check.side_effect = [first_result, result2]
-    mock_confirm.return_value = confirm
+    # If an update is available and user confirms first prompt, the CLI will ask a second confirmation
+    # to build images. We simulate both confirmations returning the same 'confirm' value for simplicity.
+    if first_result.get("update_available") and confirm:
+        mock_confirm.side_effect = [True, True]
+    elif first_result.get("update_available") and not confirm:
+        mock_confirm.side_effect = [False]
+    else:
+        mock_confirm.return_value = confirm
 
     res = cli.invoke(app, ["check-base-image-update"])
     assert res.exit_code == 0
@@ -74,6 +81,36 @@ def test_check_base_image_update(
         assert e in clean_stdout, f"Expected '{e}' to be in '{clean_stdout}'"
 
     if first_result.get("update_available"):
-        mock_confirm.assert_called_once()
+        # If an update was available we expect at least one confirmation (update prompt).
+        # If the update was applied and user agreed, a second confirmation (build prompt) may also occur.
+        assert mock_confirm.call_count >= 1
     else:
         mock_confirm.assert_not_called()
+
+
+# New test for branch 144->exit (user declines build after update)
+@patch("src.services.docker_service.DockerService.build_runner_images")
+@patch("src.services.docker_service.DockerService.check_base_image_update")
+@patch("typer.confirm")
+def test_check_base_image_update_decline_build(
+    mock_confirm, mock_check, mock_build, cli
+):
+    """Test branch where user declines to build images after update (branch 144->exit)."""
+    # First call: update available, user accepts update
+    # Second call: user declines build
+    mock_check.side_effect = [
+        {"current_version": "1", "latest_version": "2", "update_available": True},
+        {"updated": True, "new_image": "img:2"},
+    ]
+    mock_confirm.side_effect = [True, False]
+
+    res = cli.invoke(app, ["check-base-image-update"])
+    assert res.exit_code == 0
+    clean_stdout = strip_ansi_codes(res.stdout)
+    # Should mention update, but not build success or skipped lines
+    assert "mis à jour vers" in clean_stdout
+    assert "img:2" in clean_stdout
+    # Should NOT call build_runner_images
+    mock_build.assert_not_called()
+    # Should not print build success message
+    assert "buildée depuis" not in clean_stdout

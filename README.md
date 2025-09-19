@@ -47,10 +47,10 @@ Préférez :
 - Fichiers `.env` non committés (ajoutez-les à `.gitignore`).
 
 Exemple minimal `.env` :
-
+```dotenv
 GITHUB_TOKEN=ghp_................................
 DOCKER_HOST=unix:///var/run/docker.sock
-
+```
 Le fichier `runners_config.yaml` contient une clé racine `runners` avec une liste
 de définitions. Chaque définition inclut au minimum `name` et `image`.
 
