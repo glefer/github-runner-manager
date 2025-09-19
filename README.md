@@ -7,9 +7,133 @@
 ![Python](https://img.shields.io/badge/python-3.13-blue)
 [![Docker](https://img.shields.io/docker/pulls/glefer/github-runner-manager)](https://hub.docker.com/r/glefer/github-runner-manager)
 
-## � Utilisation dans un container Docker
 
-Un `Dockerfile` est fourni pour exécuter l'application dans un container. Pour permettre à l'application de piloter Docker (création/suppression de containers runners), il faut monter le socket Docker de l'hôte dans le container.
+Une application Python permettant de gérer facilement vos runners github depuis n'importe quel serveur ou en local.
+![Output](./docs/assets/output.webp)
+
+
+## Installation
+
+Prérequis :
+
+- Python 3.11+ (3.13 recommandé)
+- Docker (le démon doit être accessible si vous utilisez les runners locaux)
+- Poetry (gestionnaire de dépendances)
+
+Installation locale :
+
+1. Cloner le dépôt
+2. Installer les dépendances :
+
+     poetry install
+
+3. (Optionnel) Construire l'image Docker si vous souhaitez exécuter l'application en conteneur :
+
+     docker build -t github-runner-manager -f Dockerfile .
+
+## Configuration (.env et runners_config.yaml)
+
+Le comportement de l'application est principalement contrôlé par deux sources :
+
+- Un fichier `runners_config.yaml` (présent à la racine) qui décrit les runners,
+    images de base, labels et paramètres spécifiques à chaque runner.
+- Des variables d'environnement (optionnel) pour les secrets, les endpoints,
+    et les paramètres d'exécution (ex : DOCKER_HOST, GITHUB_TOKEN).
+
+Bonne pratique : ne stockez jamais de secrets en clair dans `runners_config.yaml`.
+Préférez :
+
+- Variables d'environnement (exporter localement ou via un gestionnaire de secrets).
+- Fichiers `.env` non committés (ajoutez-les à `.gitignore`).
+
+Exemple minimal `.env` :
+
+GITHUB_TOKEN=ghp_................................
+DOCKER_HOST=unix:///var/run/docker.sock
+
+Le fichier `runners_config.yaml` contient une clé racine `runners` avec une liste
+de définitions. Chaque définition inclut au minimum `name` et `image`.
+
+Exemple simplifié (runners_config.yaml) :
+
+```yaml
+runners:
+    - name: runner-1
+        image: ghcr.io/actions/runner:latest
+        labels: [linux, docker]
+        env:
+            MY_VAR: value
+```
+
+Le projet inclut un schéma de configuration (`src/services/config_schema.py`) qui
+valide et normalise la configuration via Pydantic. Les tests utilisent ce schéma
+pour s'assurer que les configurations d'exemple restent valides.
+
+## Utilisation Docker
+
+Pour exécuter des runners locaux, l'application communique avec le démon Docker.
+En local, montez le socket Docker dans le conteneur pour permettre la gestion des
+conteneurs :
+
+```text
+--volume /var/run/docker.sock:/var/run/docker.sock
+```
+
+Dans la plupart des cas, exécuter l'application localement suffit :
+
+poetry run python main.py <commande>
+
+ou utiliser l'image Docker construite précédemment :
+
+docker run --rm -v /var/run/docker.sock:/var/run/docker.sock github-runner-manager <commande>
+
+## Commandes CLI
+
+L'outil expose une interface en ligne de commande (Typer) documentée via l'aide :
+
+poetry run python main.py --help
+
+Commandes courantes :
+
+- list-runners            : lister les runners définis
+- start-runners           : démarrer des runners
+- stop-runners            : arrêter des runners
+- remove-runners          : supprimer des runners (optionnel : en conservant les conteneurs)
+- check-base-image-update : vérifier si les images de base ont des mises à jour disponibles
+
+## Développement et tests
+
+Le projet utilise `pytest` pour les tests unitaires. Les fixtures ont été
+centralisées pour réduire la duplication et améliorer l'isolation des tests.
+
+Exécuter la suite de tests :
+
+poetry run pytest -q
+
+
+## Sécurité et bonnes pratiques
+
+- Ne commitez jamais de secrets (`GITHUB_TOKEN`, credentials Docker) dans le
+    dépôt.
+- Utilisez des variables d'environnement, des `.env` locaux (ignorés par Git), ou
+    un gestionnaire de secrets (Vault, AWS Secrets Manager, etc.).
+- Attention aux images de runners publiques — préférez des images officielles ou
+    construites et auditées par vos équipes.
+
+## Contribution
+
+Les contributions sont bienvenues. Ouvrez une pull request avec des changements
+clairs et des tests associés. Respectez le style du projet et ajoutez des tests
+pour toute logique métier critique.
+
+## Licence
+
+MIT
+
+
+## Utilisation dans un container Docker
+
+Un `Dockerfile` est fourni afin de pouvoir construire votre propre image si vous avez des besoins plus spécifiques.
 
 ### Exemple de build et run
 
@@ -34,7 +158,7 @@ Vous pouvez remplacer `list-runners` par n'importe quelle commande CLI du projet
 
 **Attention :**
 - Le montage du socket Docker donne un accès complet à Docker sur l'hôte. À utiliser uniquement dans un contexte de confiance.
-## �🔑 Authentification et configuration du token
+## Authentification et configuration du token
 
 Depuis septembre 2025, la gestion des runners GitHub utilise un token personnel GitHub (scopes : `admin:org`, `repo`) pour générer dynamiquement un registration token à chaque création ou suppression de runner.
 
@@ -57,7 +181,7 @@ Le registration token n'est plus stocké en dur : il est généré à la volé
 
 CLI de gestion des runners GitHub Actions avec Docker. Ce projet utilise une architecture en services simplifiée et adaptée à ses besoins.
 
-## 🏗️ Architecture
+## Architecture
 
 Architecture simplifiée orientée services :
 
@@ -93,8 +217,9 @@ Architecture simplifiée orientée services :
 
 1. Cloner :
 ```bash
-git clone <repository-url>
+git clone https://github.com/glefer/github-runner-manager
 cd github-runner-manager
+cp runners_config.yaml.dist runners_config.yaml
 ```
 2. Installer :
 ```bash
