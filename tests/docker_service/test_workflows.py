@@ -73,6 +73,76 @@ def test_start_runners_creates_and_starts(docker_service, config_service):
     assert res["started"]
 
 
+def test_start_runners_extra_running_does_not_start_before_remove(
+    docker_service, config_service
+):
+    # Arrange: one extra container already RUNNING
+    prefix = config_service.load_config.return_value.runners[0].name_prefix
+    extra_name = f"{prefix}-3"
+
+    # Return extra only for the matching group
+    docker_service.list_containers = MagicMock(
+        side_effect=lambda pattern=None: (
+            [extra_name] if pattern and pattern.startswith(prefix + "-") else []
+        )
+    )
+    docker_service.container_running = MagicMock(return_value=True)
+    docker_service.image_exists = MagicMock(return_value=True)
+    docker_service.start_container = MagicMock()
+    docker_service.exec_command = MagicMock()
+    docker_service.remove_container = MagicMock()
+    # Avoid creating regular runners 1..nb
+    docker_service.container_exists = MagicMock(return_value=False)
+    docker_service.run_container = MagicMock()
+    docker_service._get_registration_token = MagicMock(return_value="tok")
+
+    # Keep a small nb so idx>nb is true for extra_name
+    config_service.load_config.return_value.runners[0].nb = 2
+
+    # Act
+    res = docker_service.start_runners()
+
+    # Assert: it was removed, but start_container was NOT called on a running extra
+    assert {"name": extra_name} in res["removed"]
+    docker_service.start_container.assert_not_called()
+    docker_service.exec_command.assert_called_once()
+    docker_service.remove_container.assert_called_once()
+
+
+def test_start_runners_extra_stopped_starts_before_remove(
+    docker_service, config_service
+):
+    # Arrange: one extra container STOPPED
+    prefix = config_service.load_config.return_value.runners[0].name_prefix
+    extra_name = f"{prefix}-4"
+
+    docker_service.list_containers = MagicMock(
+        side_effect=lambda pattern=None: (
+            [extra_name] if pattern and pattern.startswith(prefix + "-") else []
+        )
+    )
+    docker_service.container_running = MagicMock(return_value=False)
+    docker_service.image_exists = MagicMock(return_value=True)
+    docker_service.start_container = MagicMock()
+    docker_service.exec_command = MagicMock()
+    docker_service.remove_container = MagicMock()
+    # Avoid creating regular runners 1..nb
+    docker_service.container_exists = MagicMock(return_value=False)
+    docker_service.run_container = MagicMock()
+    docker_service._get_registration_token = MagicMock(return_value="tok")
+
+    config_service.load_config.return_value.runners[0].nb = 3
+
+    # Act
+    res = docker_service.start_runners()
+
+    # Assert: it was removed, and start_container was called because it was stopped
+    assert {"name": extra_name} in res["removed"]
+    docker_service.start_container.assert_called_once_with(extra_name)
+    docker_service.exec_command.assert_called_once()
+    docker_service.remove_container.assert_called_once()
+
+
 def test_stop_runners_branches(docker_service, config_service):
     docker_service.container_running = MagicMock(
         side_effect=[True, False, Exception("fail")]
