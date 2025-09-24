@@ -64,7 +64,8 @@ def test_check_base_image_update(
     # If an update is available and user confirms first prompt, the CLI will ask a second confirmation
     # to build images. We simulate both confirmations returning the same 'confirm' value for simplicity.
     if first_result.get("update_available") and confirm:
-        mock_confirm.side_effect = [True, True]
+        # Ajoute un True supplémentaire pour le prompt de déploiement
+        mock_confirm.side_effect = [True, True, True]
     elif first_result.get("update_available") and not confirm:
         mock_confirm.side_effect = [False]
     else:
@@ -114,3 +115,99 @@ def test_check_base_image_update_decline_build(
     mock_build.assert_not_called()
     # Should not print build success message
     assert "buildée depuis" not in clean_stdout
+
+
+# Nouveau: couverture du prompt de déploiement et des sorties started/restarted/running/removed
+@patch("src.services.docker_service.DockerService.start_runners")
+@patch("src.services.docker_service.DockerService.build_runner_images")
+@patch("src.services.docker_service.DockerService.check_base_image_update")
+@patch("typer.confirm")
+@pytest.mark.parametrize(
+    "start_result, expected_snippets, deploy_confirm",
+    [
+        (  # user refuse le déploiement -> aucune ligne de déploiement
+            {},
+            [],
+            False,
+        ),
+        (  # started
+            {"started": [{"name": "runner-a"}]},
+            ["runner-a démarré avec succès"],
+            True,
+        ),
+        (  # restarted
+            {"restarted": [{"name": "runner-b"}]},
+            ["runner-b existant mais stoppé"],
+            True,
+        ),
+        (  # running
+            {"running": [{"name": "runner-c"}]},
+            ["runner-c déjà démarré"],
+            True,
+        ),
+        (  # removed
+            {"removed": [{"name": "runner-d"}]},
+            ["runner-d n'est plus requis"],
+            True,
+        ),
+    ],
+)
+def test_check_base_image_update_deploy_branches(
+    mock_confirm,
+    mock_check,
+    mock_build,
+    mock_start,
+    cli,
+    start_result,
+    expected_snippets,
+    deploy_confirm,
+):
+    """Couvre:
+    - Refus du déploiement (ligne 172 -> exit)
+    - Affichage des messages started / restarted / running / removed
+    """
+    # 1ère invocation: update disponible; 2ème: mise à jour appliquée
+    mock_check.side_effect = [
+        {"current_version": "1", "latest_version": "2", "update_available": True},
+        {"updated": True, "new_image": "img:2"},
+    ]
+    # Build retourne une image pour activer la branche de déploiement potentielle
+    mock_build.return_value = {
+        "built": [{"id": "grp", "image": "custom:latest", "dockerfile": "Dockerfile"}],
+        "skipped": [],
+        "errors": [],
+    }
+    mock_start.return_value = {
+        "started": [],
+        "restarted": [],
+        "running": [],
+        "removed": [],
+        "errors": [],
+        **start_result,
+    }
+
+    # Séquence des confirmations:
+    # 1) update yes
+    # 2) build yes
+    # 3) deploy yes/no selon le paramètre
+    mock_confirm.side_effect = [True, True, deploy_confirm]
+
+    res = cli.invoke(app, ["check-base-image-update"])
+    assert res.exit_code == 0
+    clean_stdout = strip_ansi_codes(res.stdout)
+
+    # Si l'utilisateur refuse le déploiement, rien de spécifique ne doit apparaître
+    if not deploy_confirm:
+        for snippet in [
+            "démarré avec succès",
+            "existant mais stoppé",
+            "déjà démarré",
+            "n'est plus requis",
+        ]:
+            assert snippet not in clean_stdout
+        return
+
+    for snippet in expected_snippets:
+        assert (
+            snippet in clean_stdout
+        ), f"Snippet attendu manquant: {snippet}\nSortie: {clean_stdout}"

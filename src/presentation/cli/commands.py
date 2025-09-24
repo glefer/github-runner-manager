@@ -6,9 +6,12 @@ import typer
 from rich.console import Console
 
 from src.services import ConfigService, DockerService
+from src.services.scheduler_service import SchedulerService
 
 config_service = ConfigService()
 docker_service = DockerService(config_service)
+console = Console()
+scheduler_service = SchedulerService(config_service, docker_service, console)
 
 app = typer.Typer(
     help="GitHub Runner Manager - Gérez vos GitHub Actions runners Docker"
@@ -163,6 +166,35 @@ def check_base_image_update() -> None:
                     console.print(
                         f"[red][ERREUR] {error['id']}: {error['reason']}[/red]"
                     )
+
+                # Proposer de déployer les nouveaux containers si des images ont été buildées
+                if build_result.get("built"):
+                    if typer.confirm(
+                        "Voulez-vous déployer (démarrer) les nouveaux containers avec ces images ?"
+                    ):
+                        start_result = docker_service.start_runners()
+                        for started in start_result.get("started", []):
+                            console.print(
+                                f"[green][INFO] Runner {started['name']} démarré avec succès.[/green]"
+                            )
+                        for restarted in start_result.get("restarted", []):
+                            console.print(
+                                f"[yellow][INFO] Runner {restarted['name']} existant mais stoppé."
+                                f" Redémarrage...[/yellow]"
+                            )
+                        for running in start_result.get("running", []):
+                            console.print(
+                                f"[yellow][INFO] Runner {running['name']} déjà démarré. Rien à faire.[/yellow]"
+                            )
+                        for removed in start_result.get("removed", []):
+                            console.print(
+                                f"[yellow][INFO] Container {removed['name']} n'est plus requis "
+                                f"et a été supprimé.[/yellow]"
+                            )
+                        for error in start_result.get("errors", []):
+                            console.print(
+                                f"[red][ERREUR] {error['id']}: {error['reason']}[/red]"
+                            )
     else:
         console.print("[yellow]Mise à jour annulée.[/yellow]")
 
@@ -240,6 +272,19 @@ def list_runners() -> None:
         f"[bold blue]Total runners actifs : {total_running} / {total_count}[/bold blue]"
     )
     console.print(table)
+
+
+@app.command()
+def scheduler() -> None:
+    """Démarre le scheduler pour l'exécution automatisée des tâches selon la configuration."""
+    try:
+        # Utilisation du service externe pour gérer le scheduler
+        scheduler_service.start()
+    except KeyboardInterrupt:
+        console.print("[yellow]Scheduler arrêté manuellement.[/yellow]")
+        scheduler_service.stop()
+    except Exception as e:
+        console.print(f"[red]Erreur dans le scheduler: {str(e)}[/red]")
 
 
 if __name__ == "__main__":  # pragma: no cover

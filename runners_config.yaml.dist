@@ -19,3 +19,13 @@ runners:
     build_image: ./config/Dockerfile.node20
     techno: node
     techno_version: 20
+
+scheduler:
+  check_interval: "15s"           # Fréquence de vérification des mises à jour
+  time_window: "07:00-23:00"     # Plage horaire autorisée pour les actions automatiques
+  days: ["mon", "wed", "fri"]    # Jours d'exécution
+  actions:
+    - check
+    - build
+	- deploy
+  max_retries: 3

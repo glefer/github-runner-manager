@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import List, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -18,6 +18,23 @@ class RunnersDefaults(BaseModel):
     org_url: str
 
 
+class WebhookConfig(BaseModel):
+    url: str
+    events: List[str] = []
+
+
+class SchedulerConfig(BaseModel):
+    enabled: bool = False
+    check_interval: str = "15s"
+    time_window: str = "00:00-23:59"
+    days: List[str] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+    actions: List[str] = []
+    max_retries: int = 3
+    notify_on: List[str] = []
+    webhook: Optional[WebhookConfig] = None
+
+
 class FullConfig(BaseModel):
     runners_defaults: RunnersDefaults
     runners: List[RunnerConfig]
+    scheduler: Optional[SchedulerConfig] = None

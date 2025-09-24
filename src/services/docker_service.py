@@ -445,11 +445,57 @@ class DockerService:
                 runner_name = f"{prefix}-{i}"
                 try:
                     if self.container_exists(runner_name):
-                        if self.container_running(runner_name):
-                            result["running"].append({"name": runner_name})
+                        # Vérifier si l'image du container correspond à l'image attendue
+                        client = docker.from_env()
+                        container = client.containers.get(runner_name)
+                        current_image = (
+                            container.image.tags[0] if container.image.tags else None
+                        )
+                        if current_image != image:
+                            if self.container_running(runner_name):
+                                self.stop_container(runner_name)
+                            try:
+                                self.exec_command(
+                                    runner_name,
+                                    'bash -c "./config.sh remove --token $RUNNER_TOKEN || true"',
+                                )
+                            except Exception:
+                                pass
+                            self.remove_container(runner_name, force=True)
+                            registration_token = self._get_registration_token(
+                                org_url, None
+                            )
+                            env_vars = {
+                                "RUNNER_NAME": runner_name,
+                                "RUNNER_REPO": org_url,
+                                "RUNNER_TOKEN": registration_token,
+                                "RUNNER_LABELS": (
+                                    ",".join(labels)
+                                    if isinstance(labels, list)
+                                    else labels
+                                ),
+                            }
+                            command = (
+                                f"./config.sh --url {org_url} --token {registration_token} "
+                                f"--name {runner_name} --labels "
+                                f"{','.join(labels) if isinstance(labels, list) else labels} "
+                                f"--unattended && ./run.sh"
+                            )
+                            self.run_container(
+                                name=runner_name,
+                                image=image,
+                                command=command,
+                                env_vars=env_vars,
+                            )
+                            result["started"].append(
+                                {"name": runner_name, "reason": "image updated"}
+                            )
                         else:
-                            self.start_container(runner_name)
-                            result["restarted"].append({"name": runner_name})
+                            if self.container_running(runner_name):
+                                result["running"].append({"name": runner_name})
+                            else:
+                                self.start_container(runner_name)
+                                result["restarted"].append({"name": runner_name})
                     else:
                         registration_token = self._get_registration_token(org_url, None)
                         env_vars = {

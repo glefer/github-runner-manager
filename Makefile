@@ -1,65 +1,66 @@
 # Makefile for GitHub Runner Manager
-
 # Prefer project-local Poetry if available (e.g., when using a venv-managed binary)
 POETRY := $(shell [ -x .venv/bin/poetry ] && echo .venv/bin/poetry || which poetry)
 
-.PHONY: help install test test-v test-durations test-parallel test-cov test-cov-html run build-images start-runners stop-runners remove-runners list-runners check-update build all
+.PHONY: help install test test-v test-durations test-parallel test-cov test-cov-html run build-images start-runners stop-runners remove-runners list-runners check-update build all pre-commit
 
+# Each target should be documented with a comment starting with '##'
 help:
-	@echo "GitHub Runner Manager commands:"
-	@echo "  make install        - Install dependencies with Poetry"
-	@echo "  make test           - Run tests"
-	@echo "  make test-v         - Run tests (verbose)"
-	@echo "  make test-durations - Run tests and show slowest durations"
-	@echo "  make test-parallel  - Run tests in parallel if pytest-xdist is installed"
-	@echo "  make test-cov       - Run tests with coverage (term-missing)"
-	@echo "  make test-cov-html  - Run tests with coverage and generate HTML report"
-	@echo "  make run            - Show help"
-	@echo "  make build-images   - Build runner Docker images"
-	@echo "  make start-runners  - Start all runners"
-	@echo "  make stop-runners   - Stop all runners"
-	@echo "  make remove-runners - Remove all runners"
-	@echo "  make list-runners   - List all runners and their status"
-	@echo "  make check-update   - Check for base image updates"
+    @echo "Available commands:"; \
+    awk 'BEGIN {FS = ":|##"} /^[a-zA-Z0-9][^:]*:.*##/ {printf "  %-18s %s\n", $$1, $$3}' $(MAKEFILE_LIST)
 
-install:
+install:        ## Install dependencies with Poetry
 	$(POETRY) install
 
-
-test:
+test:           ## Run tests
 	$(POETRY) run pytest -q
 
-test-durations:
+test-durations: ## Run tests and show slowest durations
 	$(POETRY) run pytest -q --durations=10
 
-test-cov:
+test-cov:       ## Run tests with coverage (term-missing)
 	$(POETRY) run pytest -q --cov=src --cov-report=term-missing --cov-branch
 
-test-cov-html:
+test-cov-html:  ## Run tests with coverage and generate HTML report
 	$(POETRY) run pytest -q --cov=src --cov-report=html
 	@echo "Coverage HTML report generated at htmlcov/index.html"
 
-run:
+test-v:         ## Run tests (verbose)
+	$(POETRY) run pytest -v
+
+test-parallel:  ## Run tests in parallel if pytest-xdist is installed
+	$(POETRY) run pytest -n auto
+
+run:            ## Show help
 	$(POETRY) run python main.py --help
 
-build-images:
+build-images:   ## Build runner Docker images
 	$(POETRY) run python main.py build-runners-images
 
-start-runners:
+start-runners:  ## Start all runners
 	$(POETRY) run python main.py start-runners
 
-stop-runners:
+stop-runners:   ## Stop all runners
 	$(POETRY) run python main.py stop-runners
 
-remove-runners:
+remove-runners: ## Remove all runners
 	$(POETRY) run python main.py remove-runners
 
-list-runners:
+list-runners:   ## List all runners and their status
 	$(POETRY) run python main.py list-runners
 
-check-update:
+check-update:   ## Check for base image updates
 	$(POETRY) run python main.py check-base-image-update
 
-build: check-update build-images
+pre-commit:     ## Run pre-commit hooks on all files
+	$(POETRY) run pre-commit run --all-files
 
-all: install build start-runners list-runners
+build:          ## Check for updates and build images
+	$(MAKE) check-update
+	$(MAKE) build-images
+
+all:            ## Install, build, and start runners
+	$(MAKE) install
+	$(MAKE) build
+	$(MAKE) start-runners
+	$(MAKE) list-runners

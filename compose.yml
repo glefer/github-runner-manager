@@ -1,4 +1,5 @@
 services:
+  # Service principal : permet d'exécuter des commandes CLI manuelles (build, list, check, etc.)
   github-runner-manager:
     build: .
     image: github-runner-manager:latest
@@ -7,3 +8,20 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./runners_config.yaml:/app/runners_config.yaml:ro
       - ./config:/app/config:ro
+    env_file:
+      - .env  # Contient par ex: GITHUB_TOKEN=ghp_xxx
+  github-runner-scheduler:
+    image: github-runner-manager:latest
+    container_name: github-runner-scheduler
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./runners_config.yaml:/app/runners_config.yaml:ro
+      - ./config:/app/config:ro
+    env_file:
+      - .env
+    environment:
+      TZ: Europe/Paris
+    restart: unless-stopped
+    command: server  # Lance le scheduler via supervisord
+    # Pour consulter les logs :
+    #   docker logs -f github-runner-scheduler

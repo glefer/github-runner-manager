@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
     ca-certificates \
+    supervisor \
     && rm -rf /var/lib/apt/lists/*
 
 # Copier les fichiers de l'application
@@ -17,10 +18,13 @@ COPY pyproject.toml poetry.lock ./
 COPY src ./src
 COPY main.py ./
 COPY README.md ./
+COPY infra/docker/supervisord.conf ./
 
 # Installer Poetry et les dépendances Python
 RUN pip install poetry && poetry config virtualenvs.create false && poetry install --no-interaction --no-ansi
 
-# Par défaut, lance l'aide CLI
-ENTRYPOINT ["python", "main.py"]
-CMD ["--help"]
+COPY infra/docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD []

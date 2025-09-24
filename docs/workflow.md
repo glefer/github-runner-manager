@@ -14,7 +14,7 @@ L'application permet de gérer dynamiquement des runners GitHub auto-hébergés 
 - **Configuration centralisée** : Utilisation d'un fichier `runners_config.yaml` pour décrire les runners à gérer.
 
 ## États possibles d'un runner
-
+$	$
 Un runner peut se trouver dans l'un des états suivants :
 
 - **créé** : Le runner est configuré mais pas encore démarré.

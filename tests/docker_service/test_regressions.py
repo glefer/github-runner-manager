@@ -58,17 +58,102 @@ def test_start_runners_removal_exception(
     )
 
 
-def test_start_runners_running_and_restarted(docker_service, config_service):
+def test_start_runners_running_and_restarted(
+    docker_service, config_service, mock_docker_client
+):
+    """Vérifie qu'un runner déjà démarré est classé running et qu'un autre est redémarré.
+
+    Conditions:
+    - Deux runners configurés (nb=2)
+    - Les containers existent déjà
+    - Le premier est running, le second est stoppé
+    - Les images correspondent (pas de redéploiement forcé par mismatch d'image)
+    """
+    # Préparation config
+    cfg = config_service.load_config.return_value
+    cfg.runners[0].nb = 2
+    # Construit l'image attendue pour ce runner (avec techno/php déjà dans la config fixture)
+    base_image = cfg.runners_defaults.base_image
+    m = __import__("re").search(r":([\d.]+)$", base_image)
+    runner_version = m.group(1) if m else "latest"
+    expected_image = f"itroom/{cfg.runners[0].techno}:{cfg.runners[0].techno_version}-{runner_version}"
+
+    # Mocks
     docker_service.image_exists = MagicMock(return_value=True)
     docker_service.build_image = MagicMock()
     docker_service.container_exists = MagicMock(return_value=True)
     docker_service.container_running = MagicMock(side_effect=[True, False])
     docker_service.start_container = MagicMock()
-    config_service.load_config.return_value.runners[0].nb = 2
+
+    # Mock docker.from_env() client (fourni via fixture autouse mock_docker_client)
+    class DummyImage:
+        def __init__(self, tag):
+            self.tags = [tag]
+
+    class DummyContainer:
+        def __init__(self, tag):
+            self.image = DummyImage(tag)
+
+    # get() doit retourner un container avec la bonne image pour les deux appels
+    def get_side_effect(name):
+        return DummyContainer(expected_image)
+
+    mock_docker_client.containers.get.side_effect = get_side_effect
+    # list() peut être vide (pas d'extra containers)
+    mock_docker_client.containers.list.return_value = []
+
     res = docker_service.start_runners()
-    assert any(r["name"].startswith("test-runner") for r in res["running"]) and any(
-        r["name"].startswith("test-runner") for r in res["restarted"]
+
+    assert any(r["name"].startswith(cfg.runners[0].name_prefix) for r in res["running"])
+    assert any(
+        r["name"].startswith(cfg.runners[0].name_prefix) for r in res["restarted"]
     )
+
+
+def test_start_runners_image_mismatch_redeploy(
+    docker_service, config_service, mock_docker_client
+):
+    cfg = config_service.load_config.return_value
+    # Restreindre à un seul runner pour éviter appels multiples sur d'autres techno
+    cfg.runners = [cfg.runners[0]]
+    cfg.runners[0].nb = 1
+
+    class DummyImage:
+        def __init__(self, tag):
+            self.tags = [tag]
+
+    class DummyContainer:
+        def __init__(self, tag):
+            self.image = DummyImage(tag)
+            self.status = "running"
+
+    mock_docker_client.containers.get.return_value = DummyContainer("old/other:image")
+    mock_docker_client.containers.list.return_value = []
+
+    # Mocks sur méthodes utilisées
+    docker_service.container_exists = MagicMock(return_value=True)
+    docker_service.container_running = MagicMock(return_value=True)
+    docker_service.stop_container = MagicMock()
+    docker_service.exec_command = MagicMock(side_effect=Exception("fail remove"))
+    docker_service.remove_container = MagicMock()
+    docker_service.run_container = MagicMock()
+    docker_service.image_exists = MagicMock(return_value=True)
+    docker_service.build_image = MagicMock()
+    # Evite call API token
+    docker_service._get_registration_token = MagicMock(return_value="tok123")
+
+    res = docker_service.start_runners()
+
+    # Vérifie qu'on a ajouté un started avec reason image updated
+    assert any(r.get("reason") == "image updated" for r in res["started"])
+    # stop_container doit être appelé au moins une fois avec le runner cible
+    assert any(
+        call.args[0] == f"{cfg.runners[0].name_prefix}-1"
+        for call in docker_service.stop_container.mock_calls
+    )
+    docker_service.exec_command.assert_called_once()  # même si exception ignorée
+    docker_service.remove_container.assert_called_once()
+    docker_service.run_container.assert_called_once()
 
 
 def test_list_runners_status_stopped(docker_service, config_service):
