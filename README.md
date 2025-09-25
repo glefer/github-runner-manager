@@ -68,6 +68,68 @@ Exemple minimal `.env` :
 ```dotenv
 GITHUB_TOKEN=ghp_................................
 ```
+
+### Webhooks (notifications)
+
+GitHub Runner Manager supporte l'envoi de notifications via webhooks pour vous tenir informé des événements importants comme le démarrage/arrêt des runners, la construction d'images, ou les mises à jour disponibles.
+
+Pour configurer les webhooks, ajoutez une section `webhooks` dans votre `runners_config.yaml` :
+
+```yaml
+webhooks:
+  enabled: true
+  timeout: 10
+  retry_count: 3
+  retry_delay: 5
+  
+  # Configuration pour Slack
+  slack:
+    enabled: true
+    webhook_url: "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX"
+    username: "GitHub Runner Bot"
+    events:
+      - runner_started
+      - runner_error
+      - build_completed
+      - update_available
+```
+
+Les événements supportés incluent :
+- `runner_started` : Quand un runner est démarré
+- `runner_stopped` : Quand un runner est arrêté
+- `runner_removed` : Quand un runner est supprimé
+- `runner_error` : En cas d'erreur avec un runner
+- `runner_skipped` : Quand une action sur un runner est ignorée (ex: arrêt d'un runner qui n'est pas démarré)
+- `build_started` : Quand la construction d'une image démarre
+- `build_completed` : Quand la construction d'une image est terminée
+- `build_failed` : Quand la construction d'une image échoue
+- `image_updated` : Quand une image est mise à jour
+- `update_available` : Quand une mise à jour est disponible
+- `update_applied` : Quand une mise à jour est appliquée
+- `update_error` : En cas d'erreur lors d'une mise à jour
+
+Plusieurs providers de webhooks sont supportés :
+- Slack
+- Discord
+- Microsoft Teams
+- Webhooks génériques
+
+Pour des exemples de configuration complets, consultez :
+```bash
+cp runners_config.yaml.webhook-example runners_config.yaml
+```
+
+#### Tester les webhooks
+
+Pour tester vos webhooks sans déclencher d'actions réelles :
+
+```bash
+# Tester un événement spécifique
+python main.py webhook test --event runner_started --provider slack
+
+# Tester tous les événements configurés
+python main.py webhook test-all --provider slack
+```
 Un fichier d'exemple `runners_config.yaml.dist` est fourni à la racine du projet. Copiez-le pour créer votre propre configuration :
 
 ```bash

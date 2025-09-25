@@ -27,5 +27,151 @@ scheduler:
   actions:
     - check
     - build
-	- deploy
+    - deploy
   max_retries: 3
+
+
+webhooks:
+  # Configuration générale des webhooks
+  enabled: true
+  timeout: 10  # Délai d'attente en secondes global
+  retry_count: 3
+  retry_delay: 5  # Secondes
+  
+  # Configuration spécifique pour Slack
+  slack:
+    enabled: true
+    webhook_url: "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX"
+    username: "GitHub Runner Bot"
+    timeout: 10  # Délai d'attente spécifique à Slack
+    
+    # Liste des événements à notifier
+    events:
+      - runner_started
+      - runner_stopped
+      - runner_error
+      - build_started
+      - build_completed
+      - build_failed
+      - update_available
+      - update_applied
+  
+    # Templates de messages pour différents événements
+    templates:
+      # Template par défaut (utilisé si pas de template spécifique)
+      default:
+        title: "Notification GitHub Runner Manager"
+        text: "Un événement s'est produit"
+        color: "#36a64f"  # Vert
+        use_attachment: true
+        fields: []
+        
+      # Runner démarré
+      runner_started:
+        title: "Runner démarré"
+        text: "Le runner *{runner_name}* a été démarré avec succès"
+        color: "#36a64f"  # Vert
+        fields:
+          - name: "Runner ID"
+            value: "{runner_id}"
+            short: true
+          - name: "Labels"
+            value: "{labels}"
+            short: true
+          - name: "Technologie"
+            value: "{techno} {techno_version}"
+            short: true
+          
+      # Runner arrêté
+      runner_stopped:
+        title: "Runner arrêté"
+        text: "Le runner *{runner_name}* a été arrêté"
+        color: "#ff9000"  # Orange
+        fields:
+          - name: "Runner ID"
+            value: "{runner_id}"
+            short: true
+          - name: "Temps de fonctionnement"
+            value: "{uptime}"
+            short: true
+            
+      # Erreur runner
+      runner_error:
+        title: "⚠️ Erreur Runner"
+        text: "Une erreur s'est produite avec le runner *{runner_name}*"
+        color: "#ff0000"  # Rouge
+        fields:
+          - name: "Runner ID"
+            value: "{runner_id}"
+            short: true
+          - name: "Erreur"
+            value: "```{error_message}```"
+            short: false
+            
+      # Build commencé
+      build_started:
+        title: "Build démarré"
+        text: "Construction de l'image *{image_name}* démarrée"
+        color: "#3AA3E3"  # Bleu
+        fields:
+          - name: "Base image"
+            value: "{base_image}"
+            short: true
+          - name: "Technologie"
+            value: "{techno} {techno_version}"
+            short: true
+            
+      # Build terminé
+      build_completed:
+        title: "Build terminé"
+        text: "Construction de l'image *{image_name}* terminée avec succès en {duration}s"
+        color: "#36a64f"  # Vert
+        fields:
+          - name: "Image"
+            value: "{image_name}"
+            short: true
+          - name: "Taille"
+            value: "{image_size}"
+            short: true
+            
+      # Build échoué
+      build_failed:
+        title: "⚠️ Build échoué"
+        text: "La construction de l'image *{image_name}* a échoué"
+        color: "#ff0000"  # Rouge
+        fields:
+          - name: "Erreur"
+            value: "```{error_message}```"
+            short: false
+            
+      # Mise à jour disponible
+      update_available:
+        title: "Mise à jour disponible"
+        text: "Une mise à jour est disponible pour l'image *{image_name}*"
+        color: "#3AA3E3"  # Bleu
+        fields:
+          - name: "Version actuelle"
+            value: "{current_version}"
+            short: true
+          - name: "Nouvelle version"
+            value: "{new_version}"
+            short: true
+          - name: "Auto-update"
+            value: "{auto_update}"
+            short: true
+            
+      # Mise à jour appliquée
+      update_applied:
+        title: "Mise à jour appliquée"
+        text: "L'image *{image_name}* a été mise à jour avec succès"
+        color: "#36a64f"  # Vert
+        fields:
+          - name: "Ancienne version"
+            value: "{old_version}"
+            short: true
+          - name: "Nouvelle version"
+            value: "{new_version}"
+            short: true
+          - name: "Runners impactés"
+            value: "{affected_runners}"
+            short: false

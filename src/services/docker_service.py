@@ -423,7 +423,7 @@ class DockerService:
                     idx = int(parts[-1])
                     if idx > nb:
                         try:
-                            if self.container_running(name):
+                            if not self.container_running(name):
                                 self.start_container(name)
                             self.exec_command(
                                 name,

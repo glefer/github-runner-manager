@@ -16,6 +16,22 @@ from src.services import ConfigService, DockerService
 from src.services.config_schema import FullConfig
 
 
+@pytest.fixture(autouse=True)
+def block_real_webhook_requests():
+    """Empêche tout envoi HTTP sortant via requests.post (webhooks) pendant les tests."""
+    with patch("requests.post") as mock_post:
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.text = "MOCKED"
+        yield mock_post
+
+
+@pytest.fixture(autouse=True)
+def mock_webhook_service():
+    """Patch global de WebhookService pour désactiver les notifications réelles dans tous les tests."""
+    with patch("src.services.notification_service.WebhookService") as mock:
+        yield mock
+
+
 @pytest.fixture
 def valid_config():
     """Fixture pour une configuration valide des runners."""
