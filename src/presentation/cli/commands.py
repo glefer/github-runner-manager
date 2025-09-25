@@ -5,7 +5,6 @@ from __future__ import annotations
 import typer
 from rich.console import Console
 
-# Importer les commandes webhook
 from src.presentation.cli.webhook_commands import (
     debug_test_all_templates,
     test_webhooks,
@@ -25,7 +24,7 @@ app = typer.Typer(
 )
 console = Console()
 
-# Sous-commande pour les webhooks
+webhook_app = typer.Typer(help="Commandes pour tester et déboguer les webhooks")
 webhook_app = typer.Typer(help="Commandes pour tester et déboguer les webhooks")
 
 
@@ -35,12 +34,9 @@ def build_runners_images(quiet: bool = False, progress: bool = True) -> None:
 
     --quiet : réduit la verbosité du build en affichant uniquement les étapes et erreurs.
     """
-    # (Notification de début de build supprimée)
-
-    # Exécuter le build
+    result = docker_service.build_runner_images(quiet=quiet, use_progress=progress)
     result = docker_service.build_runner_images(quiet=quiet, use_progress=progress)
 
-    # Afficher les résultats
     for built in result.get("built", []):
         console.print(
             f"[green][SUCCESS] Image {built['image']} buildée depuis {built['dockerfile']}[/green]"
@@ -54,7 +50,6 @@ def build_runners_images(quiet: bool = False, progress: bool = True) -> None:
     for error in result.get("errors", []):
         console.print(f"[red][ERREUR] {error['id']}: {error['reason']}[/red]")
 
-    # Envoyer les notifications du résultat
     notification_service.notify_from_docker_result("build", result)
 
 
@@ -67,8 +62,6 @@ def start_runners() -> None:
         console.print(
             f"[green][INFO] Runner {started['name']} démarré avec succès.[/green]"
         )
-
-        # Notification de démarrage d'un runner
         notification_service.notify_runner_started(
             {
                 "runner_id": started.get("id", ""),
@@ -84,15 +77,10 @@ def start_runners() -> None:
             f"[yellow][INFO] Runner {restarted['name']} existant mais stoppé. Redémarrage...[/yellow]"
         )
 
-        # Notification de redémarrage d'un runner
         notification_service.notify_runner_started(
             {
-                "runner_id": restarted.get("id", ""),
                 "runner_name": restarted.get("name", ""),
                 "labels": restarted.get("labels", ""),
-                "techno": restarted.get("techno", ""),
-                "techno_version": restarted.get("techno_version", ""),
-                "restarted": True,
             }
         )
 
@@ -108,8 +96,6 @@ def start_runners() -> None:
 
     for error in result.get("errors", []):
         console.print(f"[red][ERREUR] {error['id']}: {error['reason']}[/red]")
-
-        # Notification d'erreur de démarrage d'un runner
         notification_service.notify_runner_error(
             {
                 "runner_id": error.get("id", ""),
@@ -128,8 +114,6 @@ def stop_runners() -> None:
         console.print(
             f"[green][INFO] Runner {stopped['name']} arrêté avec succès.[/green]"
         )
-
-        # Notification d'arrêt de runner
         notification_service.notify_runner_stopped(
             {
                 "runner_id": stopped.get("id", ""),
@@ -145,8 +129,6 @@ def stop_runners() -> None:
 
     for error in result.get("errors", []):
         console.print(f"[red][ERREUR] {error['name']}: {error['reason']}[/red]")
-
-        # Notification d'erreur d'arrêt de runner
         notification_service.notify_runner_error(
             {
                 "runner_id": error.get("id", ""),
@@ -160,7 +142,6 @@ def stop_runners() -> None:
 def remove_runners() -> None:
     """Désenregistre et supprime les runners Docker selon la configuration YAML."""
     result = docker_service.remove_runners()
-    # Ancienne clé 'deleted'
     for deleted in result.get("deleted", []):
         name = deleted.get("name") or deleted.get("id") or "?"
         console.print(f"[green][INFO] Runner {name} supprimé avec succès.[/green]")
@@ -168,9 +149,6 @@ def remove_runners() -> None:
             {"runner_id": deleted.get("id", name), "runner_name": name}
         )
 
-    # Nouvelle clé 'removed' mais respecter les tests: n'afficher le succès
-    # que si l'entrée possède 'container'. Les entrées avec uniquement 'name'
-    # ne doivent pas produire le message (test attendu).
     for removed in result.get("removed", []):
         if "container" in removed:
             name = removed.get("container")
@@ -191,8 +169,6 @@ def remove_runners() -> None:
 
     for error in result.get("errors", []):
         console.print(f"[red][ERREUR] {error['name']}: {error['reason']}[/red]")
-
-        # Notification d'erreur de suppression de runner
         notification_service.notify_runner_error(
             {
                 "runner_id": error.get("id", ""),
@@ -210,8 +186,6 @@ def check_base_image_update() -> None:
 
     if result.get("error"):
         console.print(f"[red]{result['error']}[/red]")
-
-        # Notification d'erreur de vérification
         notification_service.notify_update_error(
             {
                 "runner_type": "base",
@@ -231,10 +205,10 @@ def check_base_image_update() -> None:
         f"(actuelle : {result['current_version']})[/yellow]"
     )
 
-    # Notification de mise à jour disponible
     notification_service.notify_update_available(
         {
             "runner_type": "base",
+            "image_name": result.get("image_name", "unknown"),
             "current_version": result.get("current_version", "unknown"),
             "available_version": result.get("latest_version", "unknown"),
         }
@@ -250,10 +224,10 @@ def check_base_image_update() -> None:
                 f"[red]Erreur lors de la mise à jour: {update_result['error']}[/red]"
             )
 
-            # Notification d'erreur de mise à jour
             notification_service.notify_update_error(
                 {
                     "runner_type": "base",
+                    "image_name": result.get("image_name", "unknown"),
                     "error_message": update_result.get("error", "Unknown error"),
                 }
             )
@@ -262,7 +236,6 @@ def check_base_image_update() -> None:
                 f"[green]base_image mis à jour vers {update_result['new_image']} dans runners_config.yaml[/green]"
             )
 
-            # Notification de mise à jour d'image
             notification_service.notify_image_updated(
                 {
                     "runner_type": "base",
@@ -272,7 +245,6 @@ def check_base_image_update() -> None:
                 }
             )
 
-            # Proposer de builder les images avec cette nouvelle base
             if typer.confirm(
                 f"Voulez-vous builder les images des runners avec la nouvelle image {update_result.get('new_image')} ?"
             ):
@@ -296,10 +268,8 @@ def check_base_image_update() -> None:
                         f"[red][ERREUR] {error['id']}: {error['reason']}[/red]"
                     )
 
-                # Notification des résultats du build
                 notification_service.notify_from_docker_result("build", build_result)
 
-                # Proposer de déployer les nouveaux containers si des images ont été buildées
                 if build_result.get("built"):
                     if typer.confirm(
                         "Voulez-vous déployer (démarrer) les nouveaux containers avec ces images ?"
@@ -310,7 +280,6 @@ def check_base_image_update() -> None:
                                 f"[green][INFO] Runner {started['name']} démarré avec succès.[/green]"
                             )
 
-                            # Notification de démarrage d'un runner
                             notification_service.notify_runner_started(
                                 {
                                     "runner_id": started.get("id", ""),
@@ -326,8 +295,6 @@ def check_base_image_update() -> None:
                                 f"[yellow][INFO] Runner {restarted['name']} existant mais stoppé."
                                 f" Redémarrage...[/yellow]"
                             )
-
-                            # Notification de redémarrage d'un runner
                             notification_service.notify_runner_started(
                                 {
                                     "runner_id": restarted.get("id", ""),
@@ -356,8 +323,6 @@ def check_base_image_update() -> None:
                             console.print(
                                 f"[red][ERREUR] {error['id']}: {error['reason']}[/red]"
                             )
-
-                            # Notification d'erreur de démarrage d'un runner
                             notification_service.notify_runner_error(
                                 {
                                     "runner_id": error.get("id", ""),

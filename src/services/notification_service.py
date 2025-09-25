@@ -62,14 +62,10 @@ class NotificationService:
         self._emit(
             [
                 RunnerStarted(
-                    runner_id=runner_data.get("runner_id", runner_data.get("id", "")),
                     runner_name=runner_data.get(
                         "runner_name", runner_data.get("name", "")
                     ),
                     labels=runner_data.get("labels"),
-                    techno=runner_data.get("techno"),
-                    techno_version=runner_data.get("techno_version"),
-                    restarted=runner_data.get("restarted", False),
                 )
             ]
         )
@@ -78,7 +74,6 @@ class NotificationService:
         self._emit(
             [
                 RunnerStopped(
-                    runner_id=runner_data.get("runner_id", runner_data.get("id", "")),
                     runner_name=runner_data.get(
                         "runner_name", runner_data.get("name", "")
                     ),
@@ -121,6 +116,8 @@ class NotificationService:
                     ),
                     dockerfile=build_data.get("dockerfile"),
                     id=build_data.get("id"),
+                    duration=build_data.get("duration", 0.0),
+                    image_size=build_data.get("image_size", "unknown"),
                 )
             ]
         )
@@ -131,6 +128,7 @@ class NotificationService:
                 BuildFailed(
                     id=build_data.get("id"),
                     error_message=build_data.get("error_message", "Unknown error"),
+                    image_name=build_data.get("image_name", "unknown"),
                 )
             ]
         )
@@ -152,6 +150,7 @@ class NotificationService:
             [
                 UpdateAvailable(
                     runner_type=update_data.get("runner_type", "base"),
+                    image_name=update_data.get("image_name"),
                     current_version=update_data.get("current_version", ""),
                     available_version=update_data.get(
                         "available_version", update_data.get("latest_version", "")

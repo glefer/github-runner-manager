@@ -24,7 +24,6 @@ def test_load_config(config_file, valid_config):
     config = service.load_config()
 
     assert isinstance(config, FullConfig)
-    # valid_config est un FullConfig (conftest), donc compare les dicts
     assert config.model_dump() == valid_config.model_dump()
 
 
@@ -50,7 +49,6 @@ def test_save_config_with_pydantic_model(tmp_path, valid_config):
     assert config_path.exists()
     with open(config_path, "r") as f:
         saved_config = yaml.safe_load(f)
-    # Compare le dict sauvegardé avec le dict du FullConfig
     assert saved_config == valid_config.model_dump()
 
 

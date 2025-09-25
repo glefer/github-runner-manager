@@ -231,6 +231,7 @@ class WebhookService:
         Returns:
             Payload formaté pour Slack
         """
+
         # Récupérer le template
         templates = config.get("templates", {})
         template = templates.get(event_type, templates.get("default", {}))

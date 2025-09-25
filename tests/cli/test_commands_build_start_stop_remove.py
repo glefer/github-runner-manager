@@ -1,6 +1,4 @@
-"""Consolidated tests for build/start/stop/remove commands.
-Covers success, empty, skipped, and error branches with parametrization.
-"""
+"""Consolidated tests for build/start/stop/remove commands."""
 
 from unittest.mock import patch
 
@@ -208,16 +206,7 @@ def test_remove_runners(
 def test_check_base_image_update_build_outputs(
     mock_confirm, mock_check_update, mock_build, cli
 ):
-    """Covers lines printing skipped and error cases after building images
-    inside check_base_image_update interactive flow (lines 158 & 163).
-
-    Flow:
-      1. First confirm() returns True (apply update)
-      2. Second confirm() returns True (trigger build)
-      3. First call to check_base_image_update() -> update discovery
-      4. Second call (auto_update=True) -> updated result
-      5. build_runner_images() returns one skipped and one error to trigger prints.
-    """
+    """Covers lines printing skipped and error cases after building images inside check_base_image_update interactive flow."""
     # Two confirmations: update then build
     mock_confirm.side_effect = [True, True]
     # First call: update available

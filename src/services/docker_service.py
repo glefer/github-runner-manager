@@ -333,6 +333,7 @@ class DockerService:
                 build_dir = os.path.dirname(build_image) or "."
                 dockerfile_path = build_image
 
+                start = time.monotonic()
                 self.build_image(
                     image_tag=image_tag,
                     dockerfile_path=dockerfile_path,
@@ -341,18 +342,31 @@ class DockerService:
                     quiet=quiet,
                     use_progress=use_progress,
                 )
+                duration = time.monotonic() - start
+                client = docker.from_env()
+                try:
+                    image_obj = client.images.get(image_tag)
+                    image_size = image_obj.attrs.get("Size", 0)
+                except Exception:
+                    image_size = 0
 
                 result["built"].append(
                     {
                         "id": getattr(runner, "name_prefix", "unknown"),
                         "image": image_tag,
+                        "duration": f"{duration:.2f}",
                         "dockerfile": dockerfile_path,
+                        "image_size": self._format_size(image_size),
                     }
                 )
 
             except Exception as e:
                 result["errors"].append(
-                    {"id": getattr(runner, "name_prefix", "unknown"), "reason": str(e)}
+                    {
+                        "id": getattr(runner, "name_prefix", "unknown"),
+                        "image": image_tag,
+                        "reason": str(e),
+                    }
                 )
 
         return result
@@ -488,14 +502,22 @@ class DockerService:
                                 env_vars=env_vars,
                             )
                             result["started"].append(
-                                {"name": runner_name, "reason": "image updated"}
+                                {
+                                    "name": runner_name,
+                                    "reason": "image updated",
+                                    "labels": labels,
+                                }
                             )
                         else:
                             if self.container_running(runner_name):
-                                result["running"].append({"name": runner_name})
+                                result["running"].append(
+                                    {"name": runner_name, "labels": labels}
+                                )
                             else:
                                 self.start_container(runner_name)
-                                result["restarted"].append({"name": runner_name})
+                                result["restarted"].append(
+                                    {"name": runner_name, "labels": labels}
+                                )
                     else:
                         registration_token = self._get_registration_token(org_url, None)
                         env_vars = {
@@ -518,7 +540,9 @@ class DockerService:
                             command=command,
                             env_vars=env_vars,
                         )
-                        result["started"].append({"name": runner_name})
+                        result["started"].append(
+                            {"name": runner_name, "labels": labels}
+                        )
                 except Exception as e:
                     result["errors"].append(
                         {"id": runner_name, "operation": "start", "reason": str(e)}
@@ -680,6 +704,7 @@ class DockerService:
         base_image = getattr(defaults, "base_image", None) if defaults else None
 
         result: dict = {
+            "image_name": None,
             "current_version": None,
             "latest_version": None,
             "update_available": False,
@@ -690,6 +715,11 @@ class DockerService:
         if not base_image:
             result["error"] = "No base_image found in runners_defaults"
             return result
+
+        # Keep only the image name without version tag
+        result["image_name"] = (
+            base_image[: base_image.rfind(":")] if ":" in base_image else base_image
+        )
 
         m = re.search(r":([\d.]+)$", base_image)
         result["current_version"] = m.group(1) if m else None
@@ -726,3 +756,11 @@ class DockerService:
                 result["error"] = str(e)
 
         return result
+
+    def _format_size(self, size_bytes: int) -> str:
+        # Returns a human-readable string for a size in bytes
+        for unit in ["B", "KB", "MB", "GB", "TB"]:
+            if size_bytes < 1024:
+                return f"{size_bytes:.2f} {unit}"
+            size_bytes /= 1024
+        return f"{size_bytes:.2f} PB"

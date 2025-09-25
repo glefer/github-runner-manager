@@ -42,22 +42,10 @@ def collect(op, data):
                 "errors": [{"id": "3", "name": "r3", "reason": "boom"}],
             },
             [
+                lambda events: any(isinstance(e, ev.RunnerStarted) for e in events),
+                lambda events: any(isinstance(e, ev.RunnerStarted) for e in events),
                 lambda events: any(
-                    isinstance(e, ev.RunnerStarted)
-                    and e.runner_id == "1"
-                    and not e.restarted
-                    for e in events
-                ),
-                lambda events: any(
-                    isinstance(e, ev.RunnerStarted)
-                    and e.runner_id == "2"
-                    and e.restarted
-                    for e in events
-                ),
-                lambda events: any(
-                    isinstance(e, ev.RunnerError)
-                    and e.runner_id == "3"
-                    and e.error_message == "boom"
+                    isinstance(e, ev.RunnerError) and e.error_message == "boom"
                     for e in events
                 ),
             ],
@@ -71,15 +59,11 @@ def collect(op, data):
             },
             [
                 lambda events: any(
-                    isinstance(e, ev.RunnerStopped)
-                    and e.runner_id == "1"
-                    and e.uptime == "10s"
+                    isinstance(e, ev.RunnerStopped) and e.uptime == "10s"
                     for e in events
                 ),
                 lambda events: any(
-                    isinstance(e, ev.RunnerError)
-                    and e.runner_id == "2"
-                    and e.error_message == "oops"
+                    isinstance(e, ev.RunnerError) and e.error_message == "oops"
                     for e in events
                 ),
                 lambda events: any(
@@ -98,14 +82,9 @@ def collect(op, data):
                 "skipped": [{"name": "r3", "reason": "not found"}],
             },
             [
+                lambda events: any(isinstance(e, ev.RunnerRemoved) for e in events),
                 lambda events: any(
-                    isinstance(e, ev.RunnerRemoved) and e.runner_id == "1"
-                    for e in events
-                ),
-                lambda events: any(
-                    isinstance(e, ev.RunnerError)
-                    and e.runner_id == "2"
-                    and e.error_message == "fail"
+                    isinstance(e, ev.RunnerError) and e.error_message == "fail"
                     for e in events
                 ),
                 lambda events: any(
@@ -119,6 +98,7 @@ def collect(op, data):
         (
             "update",
             {
+                "image_name": "img:1.0",
                 "update_available": True,
                 "current_version": "1.0",
                 "latest_version": "1.1",

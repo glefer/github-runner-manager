@@ -10,16 +10,13 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List
 
-# Base -----------------------------------------------------------------------
 
 
 @dataclass(frozen=True)
 class NotificationEvent:
-    # Le timestamp est kw_only pour ne pas imposer d'ordre dans les sous-classes
     timestamp: datetime = field(default_factory=lambda: datetime.now(), kw_only=True)
 
     def event_type(self) -> str:  # snake_case pour cohérence existante
-        # Convertit CamelCase -> snake_case simple
         name = self.__class__.__name__
         out = []
         for i, c in enumerate(name):
@@ -34,22 +31,16 @@ class NotificationEvent:
         return data
 
 
-# Runner Events --------------------------------------------------------------
 
 
 @dataclass(frozen=True)
 class RunnerStarted(NotificationEvent):
-    runner_id: str
     runner_name: str
     labels: List[str] | str | None = None
-    techno: str | None = None
-    techno_version: str | None = None
-    restarted: bool = False
 
 
 @dataclass(frozen=True)
 class RunnerStopped(NotificationEvent):
-    runner_id: str
     runner_name: str
     uptime: str | None = None
 
@@ -74,7 +65,6 @@ class RunnerSkipped(NotificationEvent):
     reason: str
 
 
-# Build / Image Events -------------------------------------------------------
 
 
 @dataclass(frozen=True)
@@ -87,6 +77,8 @@ class BuildStarted(NotificationEvent):
 @dataclass(frozen=True)
 class BuildCompleted(NotificationEvent):
     image_name: str
+    duration: float
+    image_size: str
     dockerfile: str | None = None
     id: str | None = None
 
@@ -94,6 +86,7 @@ class BuildCompleted(NotificationEvent):
 @dataclass(frozen=True)
 class BuildFailed(NotificationEvent):
     id: str | None
+    image_name: str
     error_message: str
 
 
@@ -108,6 +101,7 @@ class ImageUpdated(NotificationEvent):
 @dataclass(frozen=True)
 class UpdateAvailable(NotificationEvent):
     runner_type: str
+    image_name: str
     current_version: str
     available_version: str
 
@@ -126,7 +120,6 @@ class UpdateError(NotificationEvent):
     error_message: str
 
 
-# Factory mapping utilitaire (option public simple) --------------------------
 EVENT_NAME_TO_CLASS = {
     "runner_started": RunnerStarted,
     "runner_stopped": RunnerStopped,

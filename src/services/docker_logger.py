@@ -18,22 +18,18 @@ class DockerBuildLogger:
         - Error messages (containing "error" or "failed")
         - Success messages (containing "successfully" or "success")
         """
-        # Strip whitespace from the line and return early if empty
         stripped_line = line.strip()
         if not stripped_line:
             return
 
-        # Keep Step lines
         if stripped_line.startswith("Step "):
             print(stripped_line)
             return
 
-        # Keep lines with error or failure messages
         if any(keyword in stripped_line.lower() for keyword in ["error", "failed"]):
             print(stripped_line)
             return
 
-        # Keep success messages
         success_keywords = [
             "success",
             "successfully",
