@@ -232,7 +232,6 @@ class WebhookService:
             Payload formatted for Slack
         """
 
-        # Récupérer le template
         templates = config.get("templates", {})
         template = templates.get(event_type, templates.get("default", {}))
 
@@ -298,7 +297,6 @@ class WebhookService:
         Returns:
             Payload formatted for Discord
         """
-        # Récupérer le template
         templates = config.get("templates", {})
         template = templates.get(event_type, templates.get("default", {}))
 
@@ -358,7 +356,6 @@ class WebhookService:
         Returns:
             Payload formatted for Teams
         """
-        # Récupérer le template
         templates = config.get("templates", {})
         template = templates.get(event_type, templates.get("default", {}))
 

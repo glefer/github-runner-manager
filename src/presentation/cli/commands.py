@@ -25,7 +25,6 @@ app = typer.Typer(
 console = Console()
 
 webhook_app = typer.Typer(help="Commandes pour tester et déboguer les webhooks")
-webhook_app = typer.Typer(help="Commandes pour tester et déboguer les webhooks")
 
 
 @app.command()
@@ -34,7 +33,6 @@ def build_runners_images(quiet: bool = False, progress: bool = True) -> None:
 
     --quiet: reduces build verbosity, showing only steps and errors.
     """
-    result = docker_service.build_runner_images(quiet=quiet, use_progress=progress)
     result = docker_service.build_runner_images(quiet=quiet, use_progress=progress)
 
     for built in result.get("built", []):
