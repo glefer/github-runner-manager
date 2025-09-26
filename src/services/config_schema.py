@@ -25,7 +25,7 @@ class WebhookConfig(BaseModel):
 
 # Définitions communes pour les champs de notification
 class NotificationField(BaseModel):
-    """Configuration d'un champ dans une notification"""
+    """Configuration for a field in a notification."""
 
     name: str
     value: str
@@ -35,7 +35,7 @@ class NotificationField(BaseModel):
 
 # Templates pour Slack
 class SlackTemplateConfig(BaseModel):
-    """Template pour une notification Slack"""
+    """Template for a Slack notification."""
 
     title: str
     text: str
@@ -46,7 +46,7 @@ class SlackTemplateConfig(BaseModel):
 
 # Templates pour Discord
 class DiscordTemplateConfig(BaseModel):
-    """Template pour une notification Discord"""
+    """Template for a Discord notification."""
 
     title: str
     description: str
@@ -56,7 +56,7 @@ class DiscordTemplateConfig(BaseModel):
 
 # Section pour Teams
 class TeamsSection(BaseModel):
-    """Section dans une carte Microsoft Teams"""
+    """Section in a Microsoft Teams card."""
 
     activityTitle: str
     facts: List[Dict[str, str]] = []
@@ -64,7 +64,7 @@ class TeamsSection(BaseModel):
 
 # Templates pour Microsoft Teams
 class TeamsTemplateConfig(BaseModel):
-    """Template pour une notification Microsoft Teams"""
+    """Template for a Microsoft Teams notification."""
 
     title: str
     themeColor: str = "0076D7"  # Bleu par défaut
@@ -73,7 +73,7 @@ class TeamsTemplateConfig(BaseModel):
 
 # Configuration Slack
 class SlackConfig(BaseModel):
-    """Configuration des notifications Slack"""
+    """Slack notification configuration."""
 
     enabled: bool = False
     webhook_url: HttpUrl
@@ -86,7 +86,7 @@ class SlackConfig(BaseModel):
 
 # Configuration Discord
 class DiscordConfig(BaseModel):
-    """Configuration des notifications Discord"""
+    """Discord notification configuration."""
 
     enabled: bool = False
     webhook_url: HttpUrl
@@ -99,7 +99,7 @@ class DiscordConfig(BaseModel):
 
 # Configuration Microsoft Teams
 class TeamsConfig(BaseModel):
-    """Configuration des notifications Microsoft Teams"""
+    """Microsoft Teams notification configuration."""
 
     enabled: bool = False
     webhook_url: HttpUrl
@@ -121,7 +121,7 @@ class SchedulerConfig(BaseModel):
 
 # Configuration globale des webhooks
 class WebhooksConfig(BaseModel):
-    """Configuration globale des webhooks"""
+    """Global webhook configuration."""
 
     enabled: bool = False
     timeout: int = 10

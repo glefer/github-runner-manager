@@ -1,4 +1,4 @@
-"""Factory utilitaire pour convertir les résultats d'opérations en événements typés."""
+"""Utility factory to convert operation results into typed events."""
 
 from __future__ import annotations
 

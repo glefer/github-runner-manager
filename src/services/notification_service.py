@@ -1,7 +1,7 @@
-"""Service de notification refactorisé avec événements et dispatcher.
+"""Refactored notification service with events and dispatcher.
 
-Compatibilité maintenue: les anciennes méthodes ``notify_*`` existent toujours
-et délèguent à l'API événementielle interne.
+Backward compatibility: legacy ``notify_*`` methods still exist
+and delegate to the internal event-based API.
 """
 
 from __future__ import annotations
@@ -30,9 +30,9 @@ from src.services.webhook_service import WebhookService
 
 
 class NotificationService:
-    """Façade publique stable pour l'envoi de notifications.
+    """Stable public facade for sending notifications.
 
-    Internellement repose sur un dispatcher + événements typés.
+    Internally relies on a dispatcher and typed events.
     """
 
     def __init__(

@@ -30,9 +30,9 @@ webhook_app = typer.Typer(help="Commandes pour tester et déboguer les webhooks"
 
 @app.command()
 def build_runners_images(quiet: bool = False, progress: bool = True) -> None:
-    """Build les images Docker custom des runners définis dans la config YAML.
+    """Build custom Docker images for runners defined in the YAML config.
 
-    --quiet : réduit la verbosité du build en affichant uniquement les étapes et erreurs.
+    --quiet: reduces build verbosity, showing only steps and errors.
     """
     result = docker_service.build_runner_images(quiet=quiet, use_progress=progress)
     result = docker_service.build_runner_images(quiet=quiet, use_progress=progress)
@@ -55,7 +55,7 @@ def build_runners_images(quiet: bool = False, progress: bool = True) -> None:
 
 @app.command()
 def start_runners() -> None:
-    """Lance les runners Docker selon la configuration YAML."""
+    """Start Docker runners according to the YAML configuration."""
     result = docker_service.start_runners()
 
     for started in result.get("started", []):
@@ -107,7 +107,7 @@ def start_runners() -> None:
 
 @app.command()
 def stop_runners() -> None:
-    """Stoppe les runners Docker selon la configuration YAML (sans désenregistrement)."""
+    """Stop Docker runners according to the YAML configuration (without deregistration)."""
     result = docker_service.stop_runners()
 
     for stopped in result.get("stopped", []):
@@ -140,7 +140,7 @@ def stop_runners() -> None:
 
 @app.command()
 def remove_runners() -> None:
-    """Désenregistre et supprime les runners Docker selon la configuration YAML."""
+    """Deregister and remove Docker runners according to the YAML configuration."""
     result = docker_service.remove_runners()
     for deleted in result.get("deleted", []):
         name = deleted.get("name") or deleted.get("id") or "?"
@@ -180,8 +180,8 @@ def remove_runners() -> None:
 
 @app.command()
 def check_base_image_update() -> None:
-    """Vérifie si une nouvelle image runner GitHub est disponible
-    et propose la mise à jour du base_image dans runners_config.yaml."""
+    """Check if a new GitHub runner image is available
+    and suggest updating base_image in runners_config.yaml."""
     result = docker_service.check_base_image_update()
 
     if result.get("error"):
@@ -340,7 +340,7 @@ def check_base_image_update() -> None:
 
 @app.command()
 def list_runners() -> None:
-    """Liste les runners définis dans la config et leur état"""
+    """List the runners defined in the config and their status."""
     from rich import box
     from rich.table import Table
 
@@ -415,7 +415,7 @@ def list_runners() -> None:
 
 @app.command()
 def scheduler() -> None:
-    """Démarre le scheduler pour l'exécution automatisée des tâches selon la configuration."""
+    """Start the scheduler for automated task execution according to the configuration."""
     try:
         # Utilisation du service externe pour gérer le scheduler
         scheduler_service.start()
@@ -436,10 +436,10 @@ def webhook_test(
     ),
 ) -> None:
     """
-    Teste l'envoi d'une notification webhook avec des données simulées.
+    Test sending a webhook notification with simulated data.
 
-    Si aucun type d'événement n'est spécifié, un menu interactif sera affiché.
-    Si aucun provider n'est spécifié, tous les providers configurés seront utilisés.
+    If no event type is specified, an interactive menu will be displayed.
+    If no provider is specified, all configured providers will be used.
     """
     test_webhooks(
         config_service, event_type, provider, interactive=True, console=console
@@ -453,10 +453,10 @@ def webhook_test_all(
     )
 ) -> None:
     """
-    Teste tous les templates webhook configurés.
+    Test all configured webhook templates.
 
-    Envoie une notification pour chaque type d'événement configuré,
-    pour le provider spécifié ou pour tous les providers.
+    Sends a notification for each configured event type,
+    for the specified provider or for all providers.
     """
     debug_test_all_templates(config_service, provider, console=console)
 

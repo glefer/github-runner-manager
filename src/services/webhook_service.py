@@ -1,7 +1,7 @@
 """
-Service de gestion des webhooks pour GitHub Runner Manager.
-Ce service fournit une interface unifiée pour envoyer des notifications vers différents
-services comme Slack, Discord, Microsoft Teams, etc.
+Webhook management service for GitHub Runner Manager.
+This service provides a unified interface to send notifications to various
+services such as Slack, Discord, Microsoft Teams, etc.
 """
 
 import logging
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class WebhookProvider(Enum):
-    """Types de fournisseurs de webhook supportés"""
+    """Supported webhook provider types."""
 
     SLACK = "slack"
     DISCORD = "discord"
@@ -28,15 +28,15 @@ class WebhookProvider(Enum):
 
 
 class WebhookService:
-    """Service unifié pour la gestion des webhooks sortants."""
+    """Unified service for managing outgoing webhooks."""
 
     def __init__(self, config: Dict[str, Any], console: Optional[Console] = None):
         """
-        Initialise le service de webhooks.
+        Initialize the webhook service.
 
         Args:
-            config: Configuration des webhooks (section 'webhooks' du fichier de config)
-            console: Console Rich pour l'affichage (optionnel)
+            config: Webhook configuration (the 'webhooks' section of the config file)
+            console: Rich Console for display (optional)
         """
         self.config = config or {}
         self.console = console or Console()
@@ -53,33 +53,33 @@ class WebhookService:
             self._init_providers()
 
     def _init_providers(self):
-        """Initialise les providers de webhook configurés."""
-        # Parcourir les fournisseurs connus
+        """Initialize configured webhook providers."""
+        # Iterate over known providers
         for provider_name in WebhookProvider:
             provider_config = self.config.get(provider_name.value)
 
-            # Si le fournisseur est configuré et activé
+            # If the provider is configured and enabled
             if provider_config and provider_config.get("enabled", False):
                 self.console.print(
-                    f"[green]Initialisation du provider webhook [bold]{provider_name.value}[/bold][/green]"
+                    f"[green]Initializing webhook provider [bold]{provider_name.value}[/bold][/green]"
                 )
 
-                # Stocker la configuration du provider
+                # Store the provider configuration
                 self.providers[provider_name.value] = provider_config
 
     def notify(
         self, event_type: str, data: Dict[str, Any], provider: Optional[str] = None
     ) -> Dict[str, bool]:
         """
-        Envoie une notification à tous les providers configurés pour cet événement.
+        Send a notification to all providers configured for this event.
 
         Args:
-            event_type: Type d'événement à notifier (runner_started, build_failed, etc.)
-            data: Données à inclure dans la notification
-            provider: Provider spécifique à utiliser (optionnel)
+            event_type: Event type to notify (runner_started, build_failed, etc.)
+            data: Data to include in the notification
+            provider: Specific provider to use (optional)
 
         Returns:
-            Dictionnaire avec les providers comme clés et les statuts comme valeurs
+            Dictionary with providers as keys and statuses as values
         """
         if not self.enabled:
             logger.info("Service webhook désactivé, notification ignorée")
@@ -131,16 +131,16 @@ class WebhookService:
         config: Dict[str, Any],
     ) -> bool:
         """
-        Envoie une notification à un provider spécifique.
+        Send a notification to a specific provider.
 
         Args:
-            provider: Nom du provider (slack, discord, teams, etc.)
-            event_type: Type d'événement à notifier
-            data: Données à inclure dans la notification
-            config: Configuration du provider
+            provider: Provider name (slack, discord, teams, etc.)
+            event_type: Event type to notify
+            data: Data to include in the notification
+            config: Provider configuration
 
         Returns:
-            True si l'envoi a réussi, False sinon
+            True if the send succeeded, False otherwise
         """
         try:
             webhook_url = config.get("webhook_url")
@@ -171,15 +171,15 @@ class WebhookService:
         self, url: str, payload: Dict[str, Any], config: Dict[str, Any]
     ) -> bool:
         """
-        Envoie une requête avec mécanisme de retry.
+        Send a request with retry mechanism.
 
         Args:
-            url: URL du webhook
-            payload: Données à envoyer
-            config: Configuration du provider
+            url: Webhook URL
+            payload: Data to send
+            config: Provider configuration
 
         Returns:
-            True si l'envoi a réussi, False sinon
+            True if the send succeeded, False otherwise
         """
         provider_timeout = config.get("timeout", self.timeout)
         retry_count = self.retry_count
@@ -221,15 +221,15 @@ class WebhookService:
         self, event_type: str, data: Dict[str, Any], config: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
-        Formate les données pour Slack.
+        Format data for Slack.
 
         Args:
-            event_type: Type d'événement
-            data: Données à inclure
-            config: Configuration Slack
+            event_type: Event type
+            data: Data to include
+            config: Slack configuration
 
         Returns:
-            Payload formaté pour Slack
+            Payload formatted for Slack
         """
 
         # Récupérer le template
@@ -288,15 +288,15 @@ class WebhookService:
         self, event_type: str, data: Dict[str, Any], config: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
-        Formate les données pour Discord.
+        Format data for Discord.
 
         Args:
-            event_type: Type d'événement
-            data: Données à inclure
-            config: Configuration Discord
+            event_type: Event type
+            data: Data to include
+            config: Discord configuration
 
         Returns:
-            Payload formaté pour Discord
+            Payload formatted for Discord
         """
         # Récupérer le template
         templates = config.get("templates", {})
@@ -348,15 +348,15 @@ class WebhookService:
         self, event_type: str, data: Dict[str, Any], config: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
-        Formate les données pour Microsoft Teams.
+        Format data for Microsoft Teams.
 
         Args:
-            event_type: Type d'événement
-            data: Données à inclure
-            config: Configuration Teams
+            event_type: Event type
+            data: Data to include
+            config: Teams configuration
 
         Returns:
-            Payload formaté pour Teams
+            Payload formatted for Teams
         """
         # Récupérer le template
         templates = config.get("templates", {})
@@ -420,15 +420,15 @@ class WebhookService:
         self, event_type: str, data: Dict[str, Any], config: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
-        Formate les données pour un webhook générique.
+        Format data for a generic webhook.
 
         Args:
-            event_type: Type d'événement
-            data: Données à inclure
-            config: Configuration du webhook
+            event_type: Event type
+            data: Data to include
+            config: Webhook configuration
 
         Returns:
-            Payload formaté pour le webhook générique
+            Payload formatted for the generic webhook
         """
         # Message simple pour webhooks génériques
         payload = {
@@ -441,14 +441,14 @@ class WebhookService:
 
     def _format_string(self, template_str: str, data: Dict[str, Any]) -> str:
         """
-        Formate une chaîne en remplaçant les variables par leurs valeurs.
+        Format a string by replacing variables with their values.
 
         Args:
-            template_str: Chaîne template avec variables {var}
-            data: Dictionnaire de données
+            template_str: Template string with {var} variables
+            data: Data dictionary
 
         Returns:
-            Chaîne formatée
+            Formatted string
         """
         try:
             return template_str.format(**data)

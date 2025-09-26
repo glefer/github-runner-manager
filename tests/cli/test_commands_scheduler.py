@@ -1,4 +1,4 @@
-"""Tests pour les commandes CLI."""
+"""Tests for CLI commands."""
 
 from unittest import mock
 
@@ -6,10 +6,10 @@ from src.presentation.cli.commands import console, scheduler, scheduler_service
 
 
 class TestCommands:
-    """Tests pour les commandes CLI de GitHub Runner Manager."""
+    """Tests for the CLI commands of GitHub Runner Manager."""
 
     def test_scheduler_normal_execution(self):
-        """Test l'exécution normale de la commande scheduler."""
+        """Test normal execution of the scheduler command."""
         scheduler_service.start = mock.MagicMock()
 
         scheduler()
@@ -17,7 +17,7 @@ class TestCommands:
         scheduler_service.start.assert_called_once()
 
     def test_scheduler_keyboard_interrupt(self):
-        """Test la commande scheduler avec KeyboardInterrupt."""
+        """Test the scheduler command with KeyboardInterrupt."""
         scheduler_service.start = mock.MagicMock(side_effect=KeyboardInterrupt())
         scheduler_service.stop = mock.MagicMock()
         console.print = mock.MagicMock()
@@ -31,7 +31,7 @@ class TestCommands:
         )
 
     def test_scheduler_exception(self):
-        """Test la commande scheduler avec une exception générique."""
+        """Test the scheduler command with a generic exception."""
         test_exception = Exception("Test error")
         scheduler_service.start = mock.MagicMock(side_effect=test_exception)
         console.print = mock.MagicMock()

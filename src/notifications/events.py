@@ -1,7 +1,7 @@
-"""Définition des événements de notification typés.
+"""Definition of typed notification events.
 
-Chaque événement est une dataclass immuable afin de faciliter tests, sérialisation
-et extension. La méthode ``event_type`` fournit la clé utilisée par les canaux.
+Each event is an immutable dataclass to facilitate testing, serialization,
+and extension. The ``event_type`` method provides the key used by channels.
 """
 
 from __future__ import annotations
