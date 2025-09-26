@@ -5,20 +5,13 @@ runners_defaults:
   # Le token GitHub doit être défini dans la variable d'environnement GITHUB_TOKEN (voir .env)
 
 runners:
-  - id: php83
-    name_prefix: my-runner-php83
-    labels: [my-runner-set-php83, php8.3]
+  - id: sample
+    name_prefix: my-runner-sample
+    labels: [my-runner-set-sample, sample]
     nb: 2
-    build_image: ./config/Dockerfile.php83
+    build_image: ./config/Dockerfile.sample
     techno: php
     techno_version: 8.3
-  - id: node20
-    name_prefix: my-runner-node20
-    labels: [my-runner-set-node20, node20]
-    nb: 1
-    build_image: ./config/Dockerfile.node20
-    techno: node
-    techno_version: 20
 
 scheduler:
   check_interval: "15s"           # Fréquence de vérification des mises à jour
@@ -72,28 +65,17 @@ webhooks:
         text: "Le runner *{runner_name}* a été démarré avec succès"
         color: "#36a64f"  # Vert
         fields:
-          - name: "Runner ID"
-            value: "{runner_id}"
-            short: true
           - name: "Labels"
             value: "{labels}"
             short: true
-          - name: "Technologie"
-            value: "{techno} {techno_version}"
-            short: true
+
           
       # Runner arrêté
       runner_stopped:
         title: "Runner arrêté"
         text: "Le runner *{runner_name}* a été arrêté"
         color: "#ff9000"  # Orange
-        fields:
-          - name: "Runner ID"
-            value: "{runner_id}"
-            short: true
-          - name: "Temps de fonctionnement"
-            value: "{uptime}"
-            short: true
+        fields: []
             
       # Erreur runner
       runner_error:
@@ -154,10 +136,7 @@ webhooks:
             value: "{current_version}"
             short: true
           - name: "Nouvelle version"
-            value: "{new_version}"
-            short: true
-          - name: "Auto-update"
-            value: "{auto_update}"
+            value: "{available_version}"
             short: true
             
       # Mise à jour appliquée

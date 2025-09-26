@@ -73,6 +73,8 @@ GITHUB_TOKEN=ghp_................................
 
 GitHub Runner Manager supporte l'envoi de notifications via webhooks pour vous tenir informé des événements importants comme le démarrage/arrêt des runners, la construction d'images, ou les mises à jour disponibles.
 
+![webhook](./docs/assets/webhook.webp)
+
 Pour configurer les webhooks, ajoutez une section `webhooks` dans votre `runners_config.yaml` :
 
 ```yaml
@@ -139,11 +141,11 @@ cp runners_config.yaml.dist runners_config.yaml
 Exemple avancé de configuration de runner (`runners_config.yaml`) :
 ```yaml
 runners:
-    - id: php83
-      name_prefix: my-runner-php83
-      labels: [my-runner-set-php83, php8.3]
+    - id: sample
+      name_prefix: my-runner-sample
+      labels: [my-runner-set-sample, sample]
       nb: 2
-      build_image: ./config/Dockerfile.php83
+      build_image: ./config/Dockerfile.sample
       techno: php
       techno_version: 8.3
 ```
