@@ -490,10 +490,12 @@ class DockerService:
                                 ),
                             }
                             command = (
+                                f"if [ ! -f .runner ]; then "
                                 f"./config.sh --url {org_url} --token {registration_token} "
-                                f"--name {runner_name} --labels "
-                                f"{','.join(labels) if isinstance(labels, list) else labels} "
-                                f"--unattended && ./run.sh"
+                                f"--name {runner_name} "
+                                f"--labels {','.join(labels) if isinstance(labels, list) else labels} "
+                                f"--unattended; "
+                                f"fi && ./run.sh"
                             )
                             self.run_container(
                                 name=runner_name,
@@ -529,10 +531,11 @@ class DockerService:
                             ),
                         }
                         command = (
+                            f"if [ ! -f .runner ]; then "
                             f"./config.sh --url {org_url} --token {registration_token} "
-                            f"--name {runner_name} --labels "
-                            f"{','.join(labels) if isinstance(labels, list) else labels} "
-                            f"--unattended && ./run.sh"
+                            f"--name {runner_name} --labels {','.join(labels) if isinstance(labels, list) else labels} "
+                            f"--unattended; "
+                            f"fi && ./run.sh"
                         )
                         self.run_container(
                             name=runner_name,

@@ -11,7 +11,6 @@ from datetime import datetime
 from typing import Any, Dict, List
 
 
-
 @dataclass(frozen=True)
 class NotificationEvent:
     timestamp: datetime = field(default_factory=lambda: datetime.now(), kw_only=True)
@@ -29,8 +28,6 @@ class NotificationEvent:
         data = asdict(self)
         data["event_type"] = self.event_type()
         return data
-
-
 
 
 @dataclass(frozen=True)
@@ -63,8 +60,6 @@ class RunnerSkipped(NotificationEvent):
     runner_name: str
     operation: str
     reason: str
-
-
 
 
 @dataclass(frozen=True)

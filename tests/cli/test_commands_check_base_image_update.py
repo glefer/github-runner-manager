@@ -110,11 +110,15 @@ def test_check_base_image_update_decline_build(
 @pytest.mark.parametrize(
     "start_result, expected_snippets, deploy_confirm",
     [
-    ({}, [], False),
-    ({"started": [{"name": "runner-a"}]}, ["runner-a démarré avec succès"], True),
-    ({"restarted": [{"name": "runner-b"}]}, ["runner-b existant mais stoppé"], True),
-    ({"running": [{"name": "runner-c"}]}, ["runner-c déjà démarré"], True),
-    ({"removed": [{"name": "runner-d"}]}, ["runner-d n'est plus requis"], True),
+        ({}, [], False),
+        ({"started": [{"name": "runner-a"}]}, ["runner-a démarré avec succès"], True),
+        (
+            {"restarted": [{"name": "runner-b"}]},
+            ["runner-b existant mais stoppé"],
+            True,
+        ),
+        ({"running": [{"name": "runner-c"}]}, ["runner-c déjà démarré"], True),
+        ({"removed": [{"name": "runner-d"}]}, ["runner-d n'est plus requis"], True),
     ],
 )
 def test_check_base_image_update_deploy_branches(

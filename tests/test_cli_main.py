@@ -27,8 +27,10 @@ def test_list():
 
 def test_main_entrypoint(monkeypatch):
     called = {}
+
     def fake_app():
         called["app"] = True
+
     monkeypatch.setattr(cli_main, "app", fake_app)
     if hasattr(cli_main, "__main__"):
         cli_main.__main__

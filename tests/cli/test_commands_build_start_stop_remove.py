@@ -206,7 +206,8 @@ def test_remove_runners(
 def test_check_base_image_update_build_outputs(
     mock_confirm, mock_check_update, mock_build, cli
 ):
-    """Covers lines printing skipped and error cases after building images inside check_base_image_update interactive flow."""
+    """Covers lines printing skipped and error cases after
+    building images inside check_base_image_update interactive flow."""
     # Two confirmations: update then build
     mock_confirm.side_effect = [True, True]
     # First call: update available

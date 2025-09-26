@@ -18,7 +18,6 @@ from .events import (
 )
 
 
-
 def events_from_operation(operation: str, result: Dict[str, Any]):
     yield from _iter_events(operation, result)
 
