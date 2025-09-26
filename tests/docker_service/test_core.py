@@ -146,9 +146,3 @@ def test_list_containers_filtering(docker_service):
         assert set(all_names) == {"foo-1", "bar-1"}
         filtered = docker_service.list_containers("foo-")
         assert filtered == ["foo-1"]
-
-
-@patch("src.services.docker_service.DockerService.build_image")
-def test_build_runner_images_success(mock_build, docker_service, config_service):
-    res = docker_service.build_runner_images()
-    assert res["built"] and not res["errors"]

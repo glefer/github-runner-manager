@@ -21,10 +21,8 @@ class WebhookChannel:
     def send(self, event: NotificationEvent) -> None:
         payload = event.to_payload()
         event_type = payload.pop("event_type")
-        # Compat: ne pas inclure timestamp ni valeurs None pour ne pas casser anciens tests
         payload.pop("timestamp", None)
         compact = {k: v for k, v in payload.items() if v is not None}
-        # Compat héritage: retirer restarted si False
         if compact.get("restarted") is False:
             compact.pop("restarted")
         self._svc.notify(event_type, compact)

@@ -61,13 +61,13 @@ def test_start_runners_removal_exception(
 def test_start_runners_running_and_restarted(
     docker_service, config_service, mock_docker_client
 ):
-    """Vérifie qu'un runner déjà démarré est classé running et qu'un autre est redémarré.
+    """Checks that one runner already started is classified as running and another is restarted.
 
     Conditions:
-    - Deux runners configurés (nb=2)
-    - Les containers existent déjà
-    - Le premier est running, le second est stoppé
-    - Les images correspondent (pas de redéploiement forcé par mismatch d'image)
+    - Two runners configured (nb=2)
+    - Containers already exist
+    - The first is running, the second is stopped
+    - Images match (no forced redeployment due to image mismatch)
     """
     # Préparation config
     cfg = config_service.load_config.return_value
