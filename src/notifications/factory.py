@@ -1,4 +1,4 @@
-"""Factory utilitaire pour convertir les résultats d'opérations en événements typés."""
+"""Utility factory to convert operation results into typed events."""
 
 from __future__ import annotations
 
@@ -17,8 +17,6 @@ from .events import (
     UpdateError,
 )
 
-# NOTE: On garde uniquement les événements réellement utilisés dans notify_from_docker_result.
-
 
 def events_from_operation(operation: str, result: Dict[str, Any]):
     yield from _iter_events(operation, result)
@@ -29,11 +27,14 @@ def _iter_events(operation: str, result: Dict[str, Any]):
         for built in result.get("built", []):
             yield BuildCompleted(
                 image_name=built.get("image", ""),
+                duration=built.get("duration", 0.0),
                 dockerfile=built.get("dockerfile", ""),
                 id=built.get("id", ""),
+                image_size=built.get("image_size", "unknown"),
             )
         for error in result.get("errors", []):
             yield BuildFailed(
+                image_name=error.get("image", ""),
                 id=error.get("id", ""),
                 error_message=error.get("reason", "Unknown error"),
             )
@@ -41,20 +42,13 @@ def _iter_events(operation: str, result: Dict[str, Any]):
     elif operation == "start":
         for started in result.get("started", []):
             yield RunnerStarted(
-                runner_id=started.get("id", ""),
                 runner_name=started.get("name", ""),
                 labels=started.get("labels", []),
-                techno=started.get("techno", ""),
-                techno_version=started.get("techno_version", ""),
             )
         for restarted in result.get("restarted", []):
             yield RunnerStarted(
-                runner_id=restarted.get("id", ""),
                 runner_name=restarted.get("name", ""),
                 labels=restarted.get("labels", []),
-                techno=restarted.get("techno", ""),
-                techno_version=restarted.get("techno_version", ""),
-                restarted=True,
             )
         for error in result.get("errors", []):
             yield RunnerError(
@@ -66,7 +60,6 @@ def _iter_events(operation: str, result: Dict[str, Any]):
     elif operation == "stop":
         for stopped in result.get("stopped", []):
             yield RunnerStopped(
-                runner_id=stopped.get("id", ""),
                 runner_name=stopped.get("name", ""),
                 uptime=stopped.get("uptime", "unknown"),
             )
@@ -106,6 +99,7 @@ def _iter_events(operation: str, result: Dict[str, Any]):
         if result.get("update_available"):
             yield UpdateAvailable(
                 runner_type="base",
+                image_name=result.get("image_name", ""),
                 current_version=result.get("current_version", ""),
                 available_version=result.get("latest_version", ""),
             )

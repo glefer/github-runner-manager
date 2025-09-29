@@ -414,7 +414,7 @@ def test_notify_unknown_provider_prints_message():
     )
     svc = WebhookService({"enabled": True, "slack": {"enabled": True}}, console=console)
     assert svc.notify("runner_started", {}, provider="nope") == {}
-    assert any("non configuré" in str(m) for m in messages)
+    assert any("not configured" in str(m) for m in messages)
 
 
 def test_format_slack_payload_defaults_and_channel(service):
@@ -493,7 +493,7 @@ def test_notify_failure_prints_error(monkeypatch):
     monkeypatch.setattr(svc, "_send_notification", lambda *a, **k: False)
     res = svc.notify("evt", {"x": 1})
     assert res == {"slack": False}
-    assert any("Échec de l'envoi" in str(m) for m in messages)
+    assert any("Failed to send notification" in str(m) for m in messages)
 
     # Removed duplicate, unindented function definition
 

@@ -19,7 +19,7 @@ def test_build_image_quiet_logger_filters():
         "Step 3/12 : RUN echo ERROR inside step",
         "some intermediate output",
         "Successfully built deadbeef",
-        "Successfully tagged itroom/python:latest",
+        "Successfully tagged python:latest",
         "ERROR something failed",
         "SUCCESSFULLY starting deployment",
     ]
@@ -32,7 +32,7 @@ def test_build_image_quiet_logger_filters():
         config_service = MagicMock(spec=ConfigService)
         docker_service = DockerService(config_service)
         docker_service.build_image(
-            image_tag="itroom/python:latest",
+            image_tag="python:latest",
             dockerfile_path="config/Dockerfile.node20",
             build_dir="config",
             quiet=True,
@@ -43,7 +43,7 @@ def test_build_image_quiet_logger_filters():
         "Step 2/12 : RUN echo hi",
         "Step 3/12 : RUN echo ERROR inside step",
         "Successfully built deadbeef",
-        "Successfully tagged itroom/python:latest",
+        "Successfully tagged python:latest",
         "ERROR something failed",
         "SUCCESSFULLY starting deployment",
     ]
@@ -84,7 +84,7 @@ def test_build_image_default_logger_prints_all():
         config_service = MagicMock(spec=ConfigService)
         docker_service = DockerService(config_service)
         docker_service.build_image(
-            image_tag="itroom/python:latest",
+            image_tag="python:latest",
             dockerfile_path="config/Dockerfile.node20",
             build_dir="config",
             quiet=False,

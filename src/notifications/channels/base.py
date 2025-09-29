@@ -1,4 +1,4 @@
-"""Canaux de notifications (interface + registry)."""
+"""Notification channels (interface + registry)."""
 
 from __future__ import annotations
 

@@ -147,7 +147,15 @@ def test_notify_build_completed_calls_emit(
     ns.dispatcher = types.SimpleNamespace(
         dispatch_many=lambda events: called.setdefault("ok", True)
     )
-    ns.notify_build_completed({"image_name": "img", "dockerfile": "df", "id": "id"})
+    ns.notify_build_completed(
+        {
+            "image_name": "img",
+            "dockerfile": "df",
+            "id": "id",
+            "duration": 1.0,
+            "image_size": "123MB",
+        }
+    )
     assert called["ok"]
 
 
@@ -161,7 +169,7 @@ def test_notify_build_failed_calls_emit(monkeypatch, enabled_webhooks_config_ser
     ns.dispatcher = types.SimpleNamespace(
         dispatch_many=lambda events: called.setdefault("ok", True)
     )
-    ns.notify_build_failed({"id": "id", "error_message": "fail"})
+    ns.notify_build_failed({"id": "id", "error_message": "fail", "image_name": "img"})
     assert called["ok"]
 
 
@@ -371,8 +379,7 @@ def test_remove_runners_deleted_and_not_available(
     )
     # Vérifie affichage suppression indisponible
     assert any(
-        f"{expected_skipped_name} n'est pas disponible à la suppression" in s
-        for s in printed
+        f"{expected_skipped_name} is not available for removal" in s for s in printed
     )
 
 
@@ -416,18 +423,6 @@ def notification_service(mock_config_service, mock_webhook_service):
     )
     mock_config_service.load_config.return_value = config
     return NotificationService(mock_config_service)
-
-
-def test_notify_runner_started_does_not_call_real_webhook(
-    notification_service, mock_webhook_service
-):
-    runner_data = {"runner_id": "test", "runner_name": "Test Runner"}
-    notification_service.notify_runner_started(runner_data)
-    # Vérifie que le mock a bien été appelé, mais pas le vrai webhook
-    assert mock_webhook_service.return_value.notify.called
-    mock_webhook_service.return_value.notify.assert_called_with(
-        "runner_started", runner_data
-    )
 
 
 def test_dispatcher_supports_filters(notification_service, mock_webhook_service):

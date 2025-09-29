@@ -1,7 +1,7 @@
 """
-Service de gestion des webhooks pour GitHub Runner Manager.
-Ce service fournit une interface unifiée pour envoyer des notifications vers différents
-services comme Slack, Discord, Microsoft Teams, etc.
+Webhook management service for GitHub Runner Manager.
+This service provides a unified interface to send notifications to various
+services such as Slack, Discord, Microsoft Teams, etc.
 """
 
 import logging
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class WebhookProvider(Enum):
-    """Types de fournisseurs de webhook supportés"""
+    """Supported webhook provider types."""
 
     SLACK = "slack"
     DISCORD = "discord"
@@ -28,15 +28,15 @@ class WebhookProvider(Enum):
 
 
 class WebhookService:
-    """Service unifié pour la gestion des webhooks sortants."""
+    """Unified service for managing outgoing webhooks."""
 
     def __init__(self, config: Dict[str, Any], console: Optional[Console] = None):
         """
-        Initialise le service de webhooks.
+        Initialize the webhook service.
 
         Args:
-            config: Configuration des webhooks (section 'webhooks' du fichier de config)
-            console: Console Rich pour l'affichage (optionnel)
+            config: Webhook configuration (the 'webhooks' section of the config file)
+            console: Rich Console for display (optional)
         """
         self.config = config or {}
         self.console = console or Console()
@@ -45,41 +45,39 @@ class WebhookService:
         self.retry_count = self.config.get("retry_count", 3)
         self.retry_delay = self.config.get("retry_delay", 5)
 
-        # Initialisation des providers
         self.providers = {}
 
-        # Si le service est activé, initialiser les providers configurés
         if self.enabled:
             self._init_providers()
 
     def _init_providers(self):
-        """Initialise les providers de webhook configurés."""
-        # Parcourir les fournisseurs connus
+        """Initialize configured webhook providers."""
+        # Iterate over known providers
         for provider_name in WebhookProvider:
             provider_config = self.config.get(provider_name.value)
 
-            # Si le fournisseur est configuré et activé
+            # If the provider is configured and enabled
             if provider_config and provider_config.get("enabled", False):
                 self.console.print(
-                    f"[green]Initialisation du provider webhook [bold]{provider_name.value}[/bold][/green]"
+                    f"[green]Initializing webhook provider [bold]{provider_name.value}[/bold][/green]"
                 )
 
-                # Stocker la configuration du provider
+                # Store the provider configuration
                 self.providers[provider_name.value] = provider_config
 
     def notify(
         self, event_type: str, data: Dict[str, Any], provider: Optional[str] = None
     ) -> Dict[str, bool]:
         """
-        Envoie une notification à tous les providers configurés pour cet événement.
+        Send a notification to all providers configured for this event.
 
         Args:
-            event_type: Type d'événement à notifier (runner_started, build_failed, etc.)
-            data: Données à inclure dans la notification
-            provider: Provider spécifique à utiliser (optionnel)
+            event_type: Event type to notify (runner_started, build_failed, etc.)
+            data: Data to include in the notification
+            provider: Specific provider to use (optional)
 
         Returns:
-            Dictionnaire avec les providers comme clés et les statuts comme valeurs
+            Dictionary with providers as keys and statuses as values
         """
         if not self.enabled:
             logger.info("Service webhook désactivé, notification ignorée")
@@ -87,24 +85,21 @@ class WebhookService:
 
         results = {}
 
-        # Filtrer les providers à utiliser
+        # Filter the provider if specified
         providers_to_use = {}
         if provider:
             if provider in self.providers:
                 providers_to_use = {provider: self.providers[provider]}
             else:
                 self.console.print(
-                    f"[yellow]Provider webhook [bold]{provider}[/bold] non configuré[/yellow]"
+                    f"[yellow]Provider webhook [bold]{provider}[/bold] not configured[/yellow]"
                 )
                 return {}
         else:
             providers_to_use = self.providers
 
-        # Pour chaque provider configuré
         for provider_name, provider_config in providers_to_use.items():
-            # Vérifier si cet événement est configuré pour ce provider
             if event_type in provider_config.get("events", []):
-                # Envoyer la notification
                 success = self._send_notification(
                     provider_name, event_type, data, provider_config
                 )
@@ -113,11 +108,11 @@ class WebhookService:
                 if success:
                     self.console.print(
                         f"[green]Notification [bold]{event_type}[/bold] "
-                        f"envoyée via [bold]{provider_name}[/bold][/green]"
+                        f"sent to [bold]{provider_name}[/bold][/green]"
                     )
                 else:
                     self.console.print(
-                        f"[red]Échec de l'envoi de la notification [bold]"
+                        f"[red]Failed to send notification [bold]"
                         f"{event_type}[/bold] via [bold]{provider_name}[/bold][/red]"
                     )
 
@@ -131,24 +126,23 @@ class WebhookService:
         config: Dict[str, Any],
     ) -> bool:
         """
-        Envoie une notification à un provider spécifique.
+        Send a notification to a specific provider.
 
         Args:
-            provider: Nom du provider (slack, discord, teams, etc.)
-            event_type: Type d'événement à notifier
-            data: Données à inclure dans la notification
-            config: Configuration du provider
+            provider: Provider name (slack, discord, teams, etc.)
+            event_type: Event type to notify
+            data: Data to include in the notification
+            config: Provider configuration
 
         Returns:
-            True si l'envoi a réussi, False sinon
+            True if the send succeeded, False otherwise
         """
         try:
             webhook_url = config.get("webhook_url")
             if not webhook_url:
-                logger.error(f"URL webhook manquante pour le provider {provider}")
+                logger.error(f"Missing webhook URL for provider {provider}")
                 return False
 
-            # Formatage spécifique au provider
             payload = None
             if provider == WebhookProvider.SLACK.value:
                 payload = self._format_slack_payload(event_type, data, config)
@@ -157,54 +151,49 @@ class WebhookService:
             elif provider == WebhookProvider.TEAMS.value:
                 payload = self._format_teams_payload(event_type, data, config)
             else:
-                # Provider générique
                 payload = self._format_generic_payload(event_type, data, config)
 
-            # Envoi avec retry
             return self._send_with_retry(webhook_url, payload, config)
 
         except Exception as e:
-            logger.exception(f"Erreur lors de l'envoi au provider {provider}: {str(e)}")
+            logger.exception(f"Error sending to provider {provider}: {str(e)}")
             return False
 
     def _send_with_retry(
         self, url: str, payload: Dict[str, Any], config: Dict[str, Any]
     ) -> bool:
         """
-        Envoie une requête avec mécanisme de retry.
+        Send a request with retry mechanism.
 
         Args:
-            url: URL du webhook
-            payload: Données à envoyer
-            config: Configuration du provider
+            url: Webhook URL
+            payload: Data to send
+            config: Provider configuration
 
         Returns:
-            True si l'envoi a réussi, False sinon
+            True if the send succeeded, False otherwise
         """
         provider_timeout = config.get("timeout", self.timeout)
         retry_count = self.retry_count
         retry_delay = self.retry_delay
 
-        # Headers par défaut
         headers = {"Content-Type": "application/json"}
 
-        # En cas d'échec, réessayer
         for attempt in range(retry_count + 1):
             try:
                 response = requests.post(
                     url, json=payload, headers=headers, timeout=provider_timeout
                 )
 
-                # Vérification du statut selon le provider
                 if 200 <= response.status_code < 300:
                     return True
 
                 logger.warning(
-                    f"Tentative {attempt + 1}/{retry_count + 1}: "
-                    f"Échec avec code {response.status_code}: {response.text}"
+                    f"Attempt {attempt + 1}/{retry_count + 1}: "
+                    f"Failed with status code {response.status_code}: {response.text}"
                 )
 
-                # Attendre avant de réessayer, sauf pour la dernière tentative
+                # Wait before retrying, except for the last attempt
                 if attempt < retry_count:
                     import time
 
@@ -212,7 +201,7 @@ class WebhookService:
 
             except Exception as e:
                 logger.warning(
-                    f"Tentative {attempt + 1}/{retry_count + 1}: Exception: {str(e)}"
+                    f"Attempt {attempt + 1}/{retry_count + 1}: Exception: {str(e)}"
                 )
 
         return False
@@ -221,34 +210,31 @@ class WebhookService:
         self, event_type: str, data: Dict[str, Any], config: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
-        Formate les données pour Slack.
+        Format data for Slack.
 
         Args:
-            event_type: Type d'événement
-            data: Données à inclure
-            config: Configuration Slack
+            event_type: Event type
+            data: Data to include
+            config: Slack configuration
 
         Returns:
-            Payload formaté pour Slack
+            Payload formatted for Slack
         """
-        # Récupérer le template
+
         templates = config.get("templates", {})
         template = templates.get(event_type, templates.get("default", {}))
 
         if not template:
-            # Template minimal par défaut
             template = {
                 "title": event_type.replace("_", " ").title(),
-                "text": f"Événement {event_type}",
+                "text": f"Event {event_type}",
                 "color": "#36a64f",
             }
 
-        # Formater le titre et le texte
         title = self._format_string(template.get("title", ""), data)
         text = self._format_string(template.get("text", ""), data)
         color = template.get("color", "#36a64f")
 
-        # Construction des attachments
         attachment = {
             "color": color,
             "title": title,
@@ -258,7 +244,6 @@ class WebhookService:
             "mrkdwn_in": ["text", "fields"],
         }
 
-        # Ajout des champs
         fields = template.get("fields", [])
         for field in fields:
             field_name = self._format_string(field.get("name", ""), data)
@@ -269,14 +254,12 @@ class WebhookService:
                 {"title": field_name, "value": field_value, "short": field_short}
             )
 
-        # Message complet
         payload = {
             "username": config.get("username", "GitHub Runner Manager"),
             "text": text if not template.get("use_attachment", True) else "",
             "attachments": [attachment] if template.get("use_attachment", True) else [],
         }
 
-        # Ajouter le channel si spécifié
         channel = config.get("channel")
         if channel:
             payload["channel"] = channel
@@ -287,34 +270,30 @@ class WebhookService:
         self, event_type: str, data: Dict[str, Any], config: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
-        Formate les données pour Discord.
+        Format data for Discord.
 
         Args:
-            event_type: Type d'événement
-            data: Données à inclure
-            config: Configuration Discord
+            event_type: Event type
+            data: Data to include
+            config: Discord configuration
 
         Returns:
-            Payload formaté pour Discord
+            Payload formatted for Discord
         """
-        # Récupérer le template
         templates = config.get("templates", {})
         template = templates.get(event_type, templates.get("default", {}))
 
         if not template:
-            # Template minimal par défaut
             template = {
                 "title": event_type.replace("_", " ").title(),
-                "description": f"Événement {event_type}",
-                "color": 3066993,  # Vert
+                "description": f"Event {event_type}",
+                "color": 3066993,
             }
 
-        # Formater le titre et la description
         title = self._format_string(template.get("title", ""), data)
         description = self._format_string(template.get("description", ""), data)
-        color = template.get("color", 3066993)  # Couleur par défaut: vert
+        color = template.get("color", 3066993)
 
-        # Construction de l'embed
         embed = {
             "title": title,
             "description": description,
@@ -323,7 +302,6 @@ class WebhookService:
             "timestamp": datetime.now().isoformat(),
         }
 
-        # Ajout des champs
         fields = template.get("fields", [])
         for field in fields:
             field_name = self._format_string(field.get("name", ""), data)
@@ -334,7 +312,6 @@ class WebhookService:
                 {"name": field_name, "value": field_value, "inline": field_inline}
             )
 
-        # Message complet
         payload = {
             "username": config.get("username", "GitHub Runner Manager"),
             "avatar_url": config.get("avatar_url", ""),
@@ -347,46 +324,40 @@ class WebhookService:
         self, event_type: str, data: Dict[str, Any], config: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
-        Formate les données pour Microsoft Teams.
+        Format data for Microsoft Teams.
 
         Args:
-            event_type: Type d'événement
-            data: Données à inclure
-            config: Configuration Teams
+            event_type: Event type
+            data: Data to include
+            config: Teams configuration
 
         Returns:
-            Payload formaté pour Teams
+            Payload formatted for Teams
         """
-        # Récupérer le template
         templates = config.get("templates", {})
         template = templates.get(event_type, templates.get("default", {}))
 
         if not template:
-            # Template minimal par défaut
             template = {
                 "title": event_type.replace("_", " ").title(),
-                "themeColor": "0076D7",  # Bleu
-                "sections": [{"activityTitle": f"Événement {event_type}", "facts": []}],
+                "themeColor": "0076D7",
+                "sections": [{"activityTitle": f"Event {event_type}", "facts": []}],
             }
 
-        # Formater le titre
         title = self._format_string(template.get("title", ""), data)
         theme_color = template.get("themeColor", "0076D7")
 
-        # Sections
         sections = []
         template_sections = template.get("sections", [])
 
         for section_template in template_sections:
             section = {}
 
-            # Titre de l'activité
             if "activityTitle" in section_template:
                 section["activityTitle"] = self._format_string(
                     section_template["activityTitle"], data
                 )
 
-            # Faits
             if "facts" in section_template:
                 facts = []
                 for fact_template in section_template["facts"]:
@@ -403,7 +374,6 @@ class WebhookService:
 
             sections.append(section)
 
-        # Message complet (Card adaptative)
         payload = {
             "@type": "MessageCard",
             "@context": "http://schema.org/extensions",
@@ -419,17 +389,16 @@ class WebhookService:
         self, event_type: str, data: Dict[str, Any], config: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
-        Formate les données pour un webhook générique.
+        Format data for a generic webhook.
 
         Args:
-            event_type: Type d'événement
-            data: Données à inclure
-            config: Configuration du webhook
+            event_type: Event type
+            data: Data to include
+            config: Webhook configuration
 
         Returns:
-            Payload formaté pour le webhook générique
+            Payload formatted for the generic webhook
         """
-        # Message simple pour webhooks génériques
         payload = {
             "event_type": event_type,
             "timestamp": datetime.now().isoformat(),
@@ -440,20 +409,20 @@ class WebhookService:
 
     def _format_string(self, template_str: str, data: Dict[str, Any]) -> str:
         """
-        Formate une chaîne en remplaçant les variables par leurs valeurs.
+        Format a string by replacing variables with their values.
 
         Args:
-            template_str: Chaîne template avec variables {var}
-            data: Dictionnaire de données
+            template_str: Template string with {var} variables
+            data: Data dictionary
 
         Returns:
-            Chaîne formatée
+            Formatted string
         """
         try:
             return template_str.format(**data)
         except KeyError as e:
-            logger.warning(f"Variable manquante dans le template: {e}")
+            logger.warning(f"Missing variable in template: {e}")
             return template_str
         except Exception as e:
-            logger.warning(f"Erreur lors du formatage: {e}")
+            logger.warning(f"Error formatting string: {e}")
             return template_str

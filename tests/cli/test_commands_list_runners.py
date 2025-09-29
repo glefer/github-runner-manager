@@ -141,7 +141,7 @@ from src.presentation.cli.commands import app
                 ],
                 "total": {"count": 1, "running": 1},
             },
-            ["sera supprimé", "g1-2"],
+            ["will be removed", "g1-2"],
         ),
         (
             {
@@ -167,7 +167,7 @@ from src.presentation.cli.commands import app
                 ],
                 "total": {"count": 1, "running": 1},
             },
-            ["sera supprimé", "g1-3", "g1-5"],
+            ["will be removed", "g1-3", "g1-5"],
         ),
         (
             {
@@ -224,7 +224,7 @@ from src.presentation.cli.commands import app
                 ],
                 "total": {"count": 0, "running": 0},
             },
-            ["sera supprimé", "g1-1", "g1-2"],
+            ["will be removed", "g1-1", "g1-2"],
         ),
     ],
 )

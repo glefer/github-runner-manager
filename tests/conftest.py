@@ -1,8 +1,8 @@
-"""Fixtures globales et configuration pytest.
+"""Global fixtures and pytest configuration.
 
-- Fournit des services mockés partagés
-- Expose un factory pour créer rapidement un ConfigService mocké avec une config donnée
-- Expose un CliRunner partagé pour les tests CLI
+- Provides shared mocked services
+- Exposes a factory to quickly create a mocked ConfigService with a given config
+- Exposes a shared CliRunner for CLI tests
 """
 
 from copy import deepcopy
@@ -18,7 +18,7 @@ from src.services.config_schema import FullConfig
 
 @pytest.fixture(autouse=True)
 def block_real_webhook_requests():
-    """Empêche tout envoi HTTP sortant via requests.post (webhooks) pendant les tests."""
+    """Prevent any outgoing HTTP requests via requests.post (webhooks) during tests."""
     with patch("requests.post") as mock_post:
         mock_post.return_value.status_code = 200
         mock_post.return_value.text = "MOCKED"
@@ -27,14 +27,14 @@ def block_real_webhook_requests():
 
 @pytest.fixture(autouse=True)
 def mock_webhook_service():
-    """Patch global de WebhookService pour désactiver les notifications réelles dans tous les tests."""
+    """Global patch of WebhookService to disable real notifications in all tests."""
     with patch("src.services.notification_service.WebhookService") as mock:
         yield mock
 
 
 @pytest.fixture
 def valid_config():
-    """Fixture pour une configuration valide des runners."""
+    """Fixture for a valid runners configuration."""
     return FullConfig.model_validate(
         {
             "runners_defaults": {
@@ -67,7 +67,7 @@ def valid_config():
 
 @pytest.fixture
 def config_file(valid_config, tmp_path):
-    """Fixture pour un fichier de configuration temporaire."""
+    """Fixture for a temporary configuration file."""
     config_path = tmp_path / "test_config.yaml"
     # valid_config est un FullConfig, on le convertit en dict pour YAML
     with open(config_path, "w") as f:
@@ -77,7 +77,7 @@ def config_file(valid_config, tmp_path):
 
 @pytest.fixture
 def mock_config_service(valid_config):
-    """Fixture pour un service de configuration mocké."""
+    """Fixture for a mocked configuration service."""
     service = create_autospec(ConfigService, spec_set=True)
     service.load_config.return_value = valid_config
     return service
@@ -85,9 +85,9 @@ def mock_config_service(valid_config):
 
 @pytest.fixture
 def config_service_factory(valid_config):
-    """Factory pour créer un ConfigService mocké avec overrides.
+    """Factory to create a mocked ConfigService with overrides.
 
-    Exemple d'usage:
+    Example usage:
         service = config_service_factory({"runners": [...]})
     """
 
@@ -120,7 +120,7 @@ def config_service(config_service_factory):
 
 @pytest.fixture(autouse=True)
 def mock_docker_client():
-    """Patch global de docker.from_env pour éviter tout accès Docker réel."""
+    """Global patch of docker.from_env to prevent any real Docker access."""
     with patch("docker.from_env") as mock_docker:
         client = MagicMock()
         mock_docker.return_value = client
@@ -129,10 +129,10 @@ def mock_docker_client():
 
 @pytest.fixture(autouse=True)
 def isolate_env_and_sleep(monkeypatch):
-    """Isolation rapide: pas de token GitHub ni de sleep bloquant par défaut.
+    """Quick isolation: no GitHub token or blocking sleep by default.
 
-    - Supprime GITHUB_TOKEN pour forcer la voie courte dans _get_registration_token.
-    - Neutralise time.sleep dans le module docker_service pour éviter toute attente.
+    - Removes GITHUB_TOKEN to force the short path in _get_registration_token.
+    - Neutralizes time.sleep in the docker_service module to avoid any waiting.
     """
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
     # Neutraliser exclusivement le sleep utilisé dans docker_service
@@ -145,7 +145,7 @@ def isolate_env_and_sleep(monkeypatch):
 
 @pytest.fixture
 def docker_service(config_service):
-    """Fixture pour le service Docker avec config mockée (uses shared config_service)."""
+    """Fixture for the Docker service with mocked config (uses shared config_service)."""
     return DockerService(config_service)
 
 
@@ -224,17 +224,17 @@ def enforce_autospec_on_service_mocks(request):
 
 @pytest.fixture
 def real_config_service(config_file):
-    """Fixture pour un vrai service de configuration avec un fichier temporaire."""
+    """Fixture for a real configuration service with a temporary file."""
     return ConfigService(config_file)
 
 
 @pytest.fixture
 def real_docker_service(real_config_service):
-    """Fixture pour un vrai service Docker avec un fichier de configuration temporaire."""
+    """Fixture for a real Docker service with a temporary configuration file."""
     return DockerService(real_config_service)
 
 
 @pytest.fixture(scope="session")
 def cli():
-    """CliRunner partagé pour tous les tests CLI."""
+    """Shared CliRunner for all CLI tests."""
     return CliRunner()

@@ -23,40 +23,39 @@ class WebhookConfig(BaseModel):
     events: List[str] = []
 
 
-# Définitions communes pour les champs de notification
 class NotificationField(BaseModel):
-    """Configuration d'un champ dans une notification"""
+    """Configuration for a field in a notification."""
 
     name: str
     value: str
-    short: bool = True  # Pour Slack
-    inline: bool = True  # Pour Discord
+    short: bool = True  # For Slack
+    inline: bool = True  # For Discord
 
 
-# Templates pour Slack
+# Templates for Slack
 class SlackTemplateConfig(BaseModel):
-    """Template pour une notification Slack"""
+    """Template for a Slack notification."""
 
     title: str
     text: str
-    color: str = "#36a64f"  # Vert par défaut
+    color: str = "#36a64f"  # Green by default
     use_attachment: bool = True
     fields: List[NotificationField] = []
 
 
-# Templates pour Discord
+# Templates for Discord
 class DiscordTemplateConfig(BaseModel):
-    """Template pour une notification Discord"""
+    """Template for a Discord notification."""
 
     title: str
     description: str
-    color: int = 3066993  # Vert en décimal
+    color: int = 3066993  # Green in decimal
     fields: List[NotificationField] = []
 
 
-# Section pour Teams
+# Section for Teams
 class TeamsSection(BaseModel):
-    """Section dans une carte Microsoft Teams"""
+    """Section in a Microsoft Teams card."""
 
     activityTitle: str
     facts: List[Dict[str, str]] = []
@@ -64,20 +63,20 @@ class TeamsSection(BaseModel):
 
 # Templates pour Microsoft Teams
 class TeamsTemplateConfig(BaseModel):
-    """Template pour une notification Microsoft Teams"""
+    """Template for a Microsoft Teams notification."""
 
     title: str
-    themeColor: str = "0076D7"  # Bleu par défaut
+    themeColor: str = "0076D7"  # Blue by default
     sections: List[TeamsSection] = []
 
 
 # Configuration Slack
 class SlackConfig(BaseModel):
-    """Configuration des notifications Slack"""
+    """Slack notification configuration."""
 
     enabled: bool = False
     webhook_url: HttpUrl
-    channel: str = ""  # Optionnel, peut être défini dans l'URL du webhook
+    channel: str = ""  # Optional, can be defined in the webhook URL
     username: str = "GitHub Runner Manager"
     timeout: int = 10
     events: List[str] = []
@@ -86,7 +85,7 @@ class SlackConfig(BaseModel):
 
 # Configuration Discord
 class DiscordConfig(BaseModel):
-    """Configuration des notifications Discord"""
+    """Discord notification configuration."""
 
     enabled: bool = False
     webhook_url: HttpUrl
@@ -99,7 +98,7 @@ class DiscordConfig(BaseModel):
 
 # Configuration Microsoft Teams
 class TeamsConfig(BaseModel):
-    """Configuration des notifications Microsoft Teams"""
+    """Microsoft Teams notification configuration."""
 
     enabled: bool = False
     webhook_url: HttpUrl
@@ -121,7 +120,7 @@ class SchedulerConfig(BaseModel):
 
 # Configuration globale des webhooks
 class WebhooksConfig(BaseModel):
-    """Configuration globale des webhooks"""
+    """Global webhook configuration."""
 
     enabled: bool = False
     timeout: int = 10

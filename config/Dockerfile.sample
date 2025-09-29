@@ -1,4 +1,4 @@
-# Dockerfile pour runner PHP 8.3 basé sur l'image de base runners_config.yaml
+# Dockerfile  PHP 8.3 based on official GitHub Actions runner image
 ARG BASE_IMAGE=ghcr.io/actions/actions-runner:latest
 FROM ${BASE_IMAGE}
 

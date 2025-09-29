@@ -1,4 +1,4 @@
-"""Service pour la gestion des tâches planifiées."""
+"""Service for managing scheduled tasks in GitHub Runner Manager."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from src.services.docker_service import DockerService
 
 
 class SchedulerService:
-    """Service de gestion des tâches planifiées pour GitHub Runner Manager."""
+    """Service for managing scheduled tasks in GitHub Runner Manager."""
 
     def __init__(
         self,
@@ -39,10 +39,10 @@ class SchedulerService:
         self.schedule_days = []
 
     def load_config(self) -> bool:
-        """Charge et valide la configuration du scheduler.
+        """Load and validate the scheduler configuration.
 
         Returns:
-            bool: True si la configuration est valide et le scheduler est activé, False sinon
+            bool: True if the configuration is valid and the scheduler is enabled, False otherwise
         """
         try:
             config = self.config_service.load_config()
@@ -61,21 +61,19 @@ class SchedulerService:
             return self._validate_config()
 
         except Exception as e:
-            self.console.print(
-                f"[red]Erreur lors du chargement de la configuration: {str(e)}[/red]"
-            )
+            self.console.print(f"[red]Error loading configuration: {str(e)}[/red]")
             return False
 
     def _validate_config(self) -> bool:
-        """Valide les paramètres de configuration.
+        """Validate configuration parameters.
 
         Returns:
-            bool: True si la configuration est valide, False sinon
+            bool: True if the configuration is valid, False otherwise
         """
         interval_match = re.match(r"(\d+)([smh])", self.check_interval)
         if not interval_match:
             self.console.print(
-                f"[red]Format d'intervalle invalide: {self.check_interval}[/red]"
+                f"[red]Invalid interval format: {self.check_interval}[/red]"
             )
             return False
 
@@ -85,7 +83,7 @@ class SchedulerService:
         window_match = re.match(r"(\d{2}):(\d{2})-(\d{2}):(\d{2})", self.time_window)
         if not window_match:
             self.console.print(
-                f"[red]Format de plage horaire invalide: {self.time_window}[/red]"
+                f"[red]Invalid time window format: {self.time_window}[/red]"
             )
             return False
 
@@ -111,159 +109,154 @@ class SchedulerService:
         ]
 
         if not self.schedule_days:
-            self.console.print("[red]Aucun jour valide configuré.[/red]")
+            self.console.print("[red]No valid day configured.[/red]")
             return False
 
         return True
 
     def check_time_window(self) -> bool:
-        """Vérifie si l'heure actuelle est dans la plage autorisée.
+        """Check if the current time is within the allowed time window.
 
         Returns:
-            bool: True si l'heure actuelle est dans la plage autorisée, False sinon
+            bool: True if the current time is within the allowed time window, False otherwise
         """
         now = datetime.datetime.now().time()
         return self.start_time <= now <= self.end_time
 
     def run_scheduled_tasks(self) -> None:
-        """Exécute les tâches planifiées selon la configuration."""
+        """Run scheduled tasks according to the configuration."""
         if not self.check_time_window():
             self.console.print(
-                "[yellow]Hors plage horaire autorisée - Tâche reportée[/yellow]"
+                "[yellow]Outside allowed time window - Task postponed[/yellow]"
             )
             return
 
         now = datetime.datetime.now()
         self.console.print(
-            f"\n[blue]Exécution des actions planifiées à {now.strftime('%H:%M:%S')}[/blue]"
+            f"\n[blue]Executing scheduled actions at {now.strftime('%H:%M:%S')}[/blue]"
         )
 
         try:
             self._execute_actions()
 
             if self.retry_count == 0:
-                self.console.print("[green]Exécution terminée avec succès[/green]")
+                self.console.print("[green]Execution completed successfully[/green]")
 
             if self.retry_count >= self.max_retries:
                 self.console.print(
-                    f"[red]Nombre maximal de tentatives atteint ({self.max_retries}). "
-                    f"Arrêt du scheduler.[/red]"
+                    f"[red]Maximum retry count reached ({self.max_retries}). "
+                    f"Stopping scheduler.[/red]"
                 )
                 self.stop()
 
         except Exception as e:
             self.console.print(
-                f"[red]Erreur pendant l'exécution des tâches: {str(e)}[/red]"
+                f"[red]Error occurred while executing tasks: {str(e)}[/red]"
             )
             self.retry_count += 1
 
             if self.retry_count >= self.max_retries:
                 self.console.print(
-                    f"[red]Nombre maximal de tentatives atteint ({self.max_retries}). "
-                    f"Arrêt du scheduler.[/red]"
+                    f"[red]No maximum retry count reached ({self.max_retries}). "
+                    f"Stopping scheduler.[/red]"
                 )
                 self.stop()
 
     def _execute_actions(self) -> None:
-        """Exécute les actions configurées."""
+        """Run the configured actions."""
         if "check" in self.actions:
             self._execute_check_action()
 
     def _execute_check_action(self) -> None:
-        """Exécute l'action de vérification des mises à jour d'image."""
-        self.console.print(
-            "[cyan]Action: Vérification des mises à jour d'image runner[/cyan]"
-        )
+        """Run the action to check for image updates."""
+        self.console.print("[cyan]Action: Check for image updates[/cyan]")
         check_result = self.docker_service.check_base_image_update(
             auto_update="build" in self.actions
         )
 
         if check_result.get("error"):
-            self.console.print(f"[red]Erreur: {check_result['error']}[/red]")
+            self.console.print(f"[red]Error: {check_result['error']}[/red]")
             self.retry_count += 1
             return
 
         if not check_result.get("update_available"):
             self.console.print(
-                f"[green]L'image runner est déjà à jour : v{check_result['current_version']}[/green]"
+                f"[green]The runner image is up to date: v{check_result['current_version']}[/green]"
             )
             self.retry_count = 0
             return
 
         self.console.print(
-            f"[yellow]Nouvelle version disponible : {check_result['latest_version']} "
-            f"(actuelle : {check_result['current_version']})[/yellow]"
+            f"[yellow]New version available: {check_result['latest_version']} "
+            f"(current: {check_result['current_version']})[/yellow]"
         )
 
         if "build" in self.actions and check_result.get("updated"):
             self._execute_build_action(check_result)
 
     def _execute_build_action(self, check_result: Dict[str, Any]) -> None:
-        """Exécute l'action de construction des images.
+        """Run the action to build images.
 
         Args:
-            check_result: Résultat de la vérification des mises à jour
+            check_result: Result of the update check
         """
         self.console.print(
-            f"[green]base_image mise à jour vers {check_result['new_image']} "
-            f"dans runners_config.yaml[/green]"
+            f"[green]base_image updated to {check_result['new_image']} "
+            f"in runners_config.yaml[/green]"
         )
 
-        self.console.print("[cyan]Action: Reconstruction des images runner[/cyan]")
+        self.console.print("[cyan]Action: Rebuilding runner images[/cyan]")
         build_result = self.docker_service.build_runner_images(
             quiet=True, use_progress=False
         )
 
         for built in build_result.get("built", []):
             self.console.print(
-                f"[green][SUCCESS] Image {built['image']} buildée depuis {built['dockerfile']}[/green]"
+                f"[green][SUCCESS] Image {built['image']} built from {built['dockerfile']}[/green]"
             )
 
         for skipped in build_result.get("skipped", []):
             self.console.print(
-                f"[yellow][INFO] Pas d'image à builder pour {skipped['id']} "
+                f"[yellow][INFO] No image to build for {skipped['id']} "
                 f"({skipped['reason']})[/yellow]"
             )
 
         for error in build_result.get("errors", []):
-            self.console.print(f"[red][ERREUR] {error['id']}: {error['reason']}[/red]")
+            self.console.print(f"[red][ERROR] {error['id']}: {error['reason']}[/red]")
             self.retry_count += 1
 
-        # Déploiement automatique si demandé et si des images ont été construites
         if "deploy" in self.actions and build_result.get("built"):
-            self.console.print(
-                "[cyan]Action: Déploiement automatique des runners[/cyan]"
-            )
+            self.console.print("[cyan]Action: Automatic deployment of runners[/cyan]")
             try:
                 start_result = self.docker_service.start_runners()
                 for started in start_result.get("started", []):
                     self.console.print(
-                        f"[green][INFO] Runner {started['name']} démarré (deploy).[/green]"
+                        f"[green][INFO] Runner {started['name']} started (deploy).[/green]"
                     )
                 for restarted in start_result.get("restarted", []):
                     self.console.print(
-                        f"[yellow][INFO] Runner {restarted['name']} redémarré (deploy).[/yellow]"
+                        f"[yellow][INFO] Runner {restarted['name']} restarted (deploy).[/yellow]"
                     )
                 for running in start_result.get("running", []):
                     self.console.print(
-                        f"[blue][INFO] Runner {running['name']} déjà en cours (deploy).[/blue]"
+                        f"[blue][INFO] Runner {running['name']} already running (deploy).[/blue]"
                     )
                 for removed in start_result.get("removed", []):
                     self.console.print(
-                        f"[magenta][INFO] Container {removed['name']} supprimé (deploy).[/magenta]"
+                        f"[magenta][INFO] Container {removed['name']} removed (deploy).[/magenta]"
                     )
                 for error in start_result.get("errors", []):
                     self.console.print(
-                        f"[red][ERREUR] {error['id']}: {error['reason']} (deploy)[/red]"
+                        f"[red][ERROR] {error['id']}: {error['reason']} (deploy)[/red]"
                     )
             except Exception as e:
                 self.console.print(
-                    f"[red]Erreur lors du déploiement automatique: {str(e)}[/red]"
+                    f"[red]Error during automatic deployment: {str(e)}[/red]"
                 )
                 self.retry_count += 1
 
     def _setup_schedule(self) -> None:
-        """Configure les tâches planifiées avec la bibliothèque schedule."""
+        """Configure scheduled tasks with the schedule library."""
         schedule.clear()
         unit_map = {
             "s": lambda: schedule.every(self.interval_value).seconds,
@@ -292,16 +285,16 @@ class SchedulerService:
                 self._jobs.append(job)
 
     def start(self) -> None:
-        """Démarre le scheduler."""
+        """Starts the scheduler."""
         if not self.load_config():
             return
 
         self._setup_schedule()
 
-        self.console.print("[blue]Scheduler démarré:[/blue]")
-        self.console.print(f"  [cyan]Intervalle:[/cyan] {self.check_interval}")
-        self.console.print(f"  [cyan]Plage horaire:[/cyan] {self.time_window}")
-        self.console.print(f"  [cyan]Jours:[/cyan] {', '.join(self.allowed_days)}")
+        self.console.print("[blue]Scheduler started:[/blue]")
+        self.console.print(f"  [cyan]Interval:[/cyan] {self.check_interval}")
+        self.console.print(f"  [cyan]Time window:[/cyan] {self.time_window}")
+        self.console.print(f"  [cyan]Days:[/cyan] {', '.join(self.allowed_days)}")
         self.console.print(f"  [cyan]Actions:[/cyan] {', '.join(self.actions)}")
 
         self.is_running = True
@@ -311,14 +304,14 @@ class SchedulerService:
                 schedule.run_pending()
                 time.sleep(1)
         except KeyboardInterrupt:
-            self.console.print("[yellow]Scheduler arrêté manuellement.[/yellow]")
+            self.console.print("[yellow]Scheduler stopped manually.[/yellow]")
             self.stop()
         except Exception as e:
-            self.console.print(f"[red]Erreur dans le scheduler: {str(e)}[/red]")
+            self.console.print(f"[red]Error in scheduler: {str(e)}[/red]")
             self.stop()
 
     def stop(self) -> None:
-        """Arrête le scheduler."""
+        """Stops the scheduler."""
         self.is_running = False
         schedule.clear()
         self._jobs = []

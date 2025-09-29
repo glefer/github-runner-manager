@@ -1,4 +1,4 @@
-"""Service Docker pour gérer les runners GitHub Actions."""
+"""Docker service for managing GitHub Actions runners."""
 
 import os
 import re
@@ -27,7 +27,7 @@ class DockerService:
     def _get_registration_token(
         self, org_url: str, github_personal_token: Optional[str] = None
     ) -> str:
-        """Obtient dynamiquement un registration token via l'API GitHub."""
+        """Dynamically obtain a registration token via the GitHub API."""
 
         if github_personal_token is None:
             github_personal_token = os.getenv("GITHUB_TOKEN")
@@ -66,7 +66,7 @@ class DockerService:
         self.config_service = config_service
 
     def container_exists(self, name: str) -> bool:
-        """Vérifie si un conteneur existe (docker-py)."""
+        """Check if a container exists (docker-py)."""
 
         client = docker.from_env()
         try:
@@ -78,7 +78,7 @@ class DockerService:
             return False
 
     def container_running(self, name: str) -> bool:
-        """Vérifie si un conteneur est en cours d'exécution (docker-py)."""
+        """Check if a container is running (docker-py)."""
 
         client = docker.from_env()
         try:
@@ -93,7 +93,7 @@ class DockerService:
         subprocess.run(cmd, check=True)
 
     def image_exists(self, tag: str) -> bool:
-        """Vérifie si une image Docker existe (docker-py)."""
+        """Check if a Docker image exists (docker-py)."""
 
         client = docker.from_env()
         try:
@@ -112,7 +112,7 @@ class DockerService:
         quiet: bool = False,
         use_progress: bool = False,
     ) -> None:
-        """Construit une image Docker (docker-py)."""
+        """Build a Docker image (docker-py)."""
 
         client = docker.from_env()
         buildargs = build_args or {}
@@ -225,28 +225,28 @@ class DockerService:
                 pass
 
     def exec_command(self, container: str, command: str) -> None:
-        """Exécute une commande dans un conteneur en cours d'exécution (docker-py)."""
+        """Execute a command in a running container (docker-py)."""
 
         client = docker.from_env()
         cont = client.containers.get(container)
         cont.exec_run(command, privileged=True, detach=False)
 
     def start_container(self, name: str) -> None:
-        """Démarre un conteneur (docker-py)."""
+        """Start a container (docker-py)."""
 
         client = docker.from_env()
         container = client.containers.get(name)
         container.start()
 
     def stop_container(self, name: str) -> None:
-        """Arrête un conteneur (docker-py)."""
+        """Stop a container (docker-py)."""
 
         client = docker.from_env()
         container = client.containers.get(name)
         container.stop()
 
     def remove_container(self, name: str, force: bool = False) -> None:
-        """Supprime un conteneur (docker-py)."""
+        """Remove a container (docker-py)."""
 
         client = docker.from_env()
         container = client.containers.get(name)
@@ -260,7 +260,7 @@ class DockerService:
         env_vars: Dict[str, str],
         detach: bool = True,
     ) -> None:
-        """Exécute un nouveau conteneur."""
+        """Run a new container."""
         cmd = ["docker", "run"]
 
         if detach:
@@ -281,7 +281,7 @@ class DockerService:
         self.run_command(cmd)
 
     def list_containers(self, name_pattern: Optional[str] = None) -> List[str]:
-        """Liste les noms des conteneurs, éventuellement filtrés par modèle (docker-py)."""
+        """List container names, optionally filtered by pattern (docker-py)."""
 
         client = docker.from_env()
         containers = client.containers.list(all=True)
@@ -293,7 +293,7 @@ class DockerService:
     def build_runner_images(
         self, quiet: bool = False, use_progress: bool = False
     ) -> dict:
-        """Construit les images Docker personnalisées pour les runners."""
+        """Build custom Docker images for runners."""
         config = self.config_service.load_config()
         runners = config.runners
         defaults = config.runners_defaults
@@ -329,10 +329,11 @@ class DockerService:
                 continue
 
             try:
-                image_tag = f"itroom/{techno}:{techno_version}-{runner_version}"
+                image_tag = f"{techno}:{techno_version}-{runner_version}"
                 build_dir = os.path.dirname(build_image) or "."
                 dockerfile_path = build_image
 
+                start = time.monotonic()
                 self.build_image(
                     image_tag=image_tag,
                     dockerfile_path=dockerfile_path,
@@ -341,24 +342,37 @@ class DockerService:
                     quiet=quiet,
                     use_progress=use_progress,
                 )
+                duration = time.monotonic() - start
+                client = docker.from_env()
+                try:
+                    image_obj = client.images.get(image_tag)
+                    image_size = image_obj.attrs.get("Size", 0)
+                except Exception:
+                    image_size = 0
 
                 result["built"].append(
                     {
                         "id": getattr(runner, "name_prefix", "unknown"),
                         "image": image_tag,
+                        "duration": f"{duration:.2f}",
                         "dockerfile": dockerfile_path,
+                        "image_size": self._format_size(image_size),
                     }
                 )
 
             except Exception as e:
                 result["errors"].append(
-                    {"id": getattr(runner, "name_prefix", "unknown"), "reason": str(e)}
+                    {
+                        "id": getattr(runner, "name_prefix", "unknown"),
+                        "image": image_tag,
+                        "reason": str(e),
+                    }
                 )
 
         return result
 
     def start_runners(self) -> dict:
-        """Démarre les runners Docker selon la configuration."""
+        """Start Docker runners according to the configuration."""
         config = self.config_service.load_config()
 
         defaults = config.runners_defaults
@@ -387,7 +401,7 @@ class DockerService:
             base_image = getattr(runner, "base_image", base_image_default)
             org_url = getattr(runner, "org_url", org_url_default)
             if build_image and techno and techno_version:
-                image = f"itroom/{techno}:{techno_version}-{runner_version}"
+                image = f"{techno}:{techno_version}-{runner_version}"
             else:
                 image = f"{prefix}:latest"
 
@@ -476,10 +490,12 @@ class DockerService:
                                 ),
                             }
                             command = (
+                                f"if [ ! -f .runner ]; then "
                                 f"./config.sh --url {org_url} --token {registration_token} "
-                                f"--name {runner_name} --labels "
-                                f"{','.join(labels) if isinstance(labels, list) else labels} "
-                                f"--unattended && ./run.sh"
+                                f"--name {runner_name} "
+                                f"--labels {','.join(labels) if isinstance(labels, list) else labels} "
+                                f"--unattended; "
+                                f"fi && ./run.sh"
                             )
                             self.run_container(
                                 name=runner_name,
@@ -488,14 +504,22 @@ class DockerService:
                                 env_vars=env_vars,
                             )
                             result["started"].append(
-                                {"name": runner_name, "reason": "image updated"}
+                                {
+                                    "name": runner_name,
+                                    "reason": "image updated",
+                                    "labels": labels,
+                                }
                             )
                         else:
                             if self.container_running(runner_name):
-                                result["running"].append({"name": runner_name})
+                                result["running"].append(
+                                    {"name": runner_name, "labels": labels}
+                                )
                             else:
                                 self.start_container(runner_name)
-                                result["restarted"].append({"name": runner_name})
+                                result["restarted"].append(
+                                    {"name": runner_name, "labels": labels}
+                                )
                     else:
                         registration_token = self._get_registration_token(org_url, None)
                         env_vars = {
@@ -507,10 +531,11 @@ class DockerService:
                             ),
                         }
                         command = (
+                            f"if [ ! -f .runner ]; then "
                             f"./config.sh --url {org_url} --token {registration_token} "
-                            f"--name {runner_name} --labels "
-                            f"{','.join(labels) if isinstance(labels, list) else labels} "
-                            f"--unattended && ./run.sh"
+                            f"--name {runner_name} --labels {','.join(labels) if isinstance(labels, list) else labels} "
+                            f"--unattended; "
+                            f"fi && ./run.sh"
                         )
                         self.run_container(
                             name=runner_name,
@@ -518,7 +543,9 @@ class DockerService:
                             command=command,
                             env_vars=env_vars,
                         )
-                        result["started"].append({"name": runner_name})
+                        result["started"].append(
+                            {"name": runner_name, "labels": labels}
+                        )
                 except Exception as e:
                     result["errors"].append(
                         {"id": runner_name, "operation": "start", "reason": str(e)}
@@ -527,7 +554,7 @@ class DockerService:
         return result
 
     def stop_runners(self) -> dict:
-        """Arrête les runners Docker selon la configuration."""
+        """Stop Docker runners according to the configuration."""
         config = self.config_service.load_config()
         runners = getattr(config, "runners", [])
 
@@ -557,7 +584,7 @@ class DockerService:
         return result
 
     def remove_runners(self) -> dict:
-        """Supprime les runners Docker selon la configuration."""
+        """Remove Docker runners according to the configuration."""
         config = self.config_service.load_config()
         runners = getattr(config, "runners", [])
 
@@ -593,7 +620,7 @@ class DockerService:
         return result
 
     def list_runners(self) -> dict:
-        """Liste les runners Docker avec leur état."""
+        """List Docker runners with their status."""
         config = self.config_service.load_config()
         runners = getattr(config, "runners", [])
 
@@ -655,7 +682,7 @@ class DockerService:
         return result
 
     def get_latest_runner_version(self) -> Optional[str]:
-        """Récupère la dernière version du runner GitHub via l'API GitHub."""
+        """Retrieve the latest GitHub runner version via the GitHub API."""
 
         try:
             url = "https://api.github.com/repos/actions/runner/releases/latest"
@@ -674,12 +701,13 @@ class DockerService:
     def check_base_image_update(
         self, config_path: str = "runners_config.yaml", auto_update: bool = False
     ) -> dict:
-        """Vérifie si une mise à jour de l'image de base du runner GitHub est disponible."""
+        """Check if a base image update for the GitHub runner is available."""
         config = self.config_service.load_config()
         defaults = getattr(config, "runners_defaults", None)
         base_image = getattr(defaults, "base_image", None) if defaults else None
 
         result: dict = {
+            "image_name": None,
             "current_version": None,
             "latest_version": None,
             "update_available": False,
@@ -690,6 +718,11 @@ class DockerService:
         if not base_image:
             result["error"] = "No base_image found in runners_defaults"
             return result
+
+        # Keep only the image name without version tag
+        result["image_name"] = (
+            base_image[: base_image.rfind(":")] if ":" in base_image else base_image
+        )
 
         m = re.search(r":([\d.]+)$", base_image)
         result["current_version"] = m.group(1) if m else None
@@ -726,3 +759,11 @@ class DockerService:
                 result["error"] = str(e)
 
         return result
+
+    def _format_size(self, size_bytes: int) -> str:
+        # Returns a human-readable string for a size in bytes
+        for unit in ["B", "KB", "MB", "GB", "TB"]:
+            if size_bytes < 1024:
+                return f"{size_bytes:.2f} {unit}"
+            size_bytes /= 1024
+        return f"{size_bytes:.2f} PB"
