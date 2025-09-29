@@ -45,10 +45,8 @@ class WebhookService:
         self.retry_count = self.config.get("retry_count", 3)
         self.retry_delay = self.config.get("retry_delay", 5)
 
-        # Initialisation des providers
         self.providers = {}
 
-        # Si le service est activé, initialiser les providers configurés
         if self.enabled:
             self._init_providers()
 
@@ -87,24 +85,21 @@ class WebhookService:
 
         results = {}
 
-        # Filtrer les providers à utiliser
+        # Filter the provider if specified
         providers_to_use = {}
         if provider:
             if provider in self.providers:
                 providers_to_use = {provider: self.providers[provider]}
             else:
                 self.console.print(
-                    f"[yellow]Provider webhook [bold]{provider}[/bold] non configuré[/yellow]"
+                    f"[yellow]Provider webhook [bold]{provider}[/bold] not configured[/yellow]"
                 )
                 return {}
         else:
             providers_to_use = self.providers
 
-        # Pour chaque provider configuré
         for provider_name, provider_config in providers_to_use.items():
-            # Vérifier si cet événement est configuré pour ce provider
             if event_type in provider_config.get("events", []):
-                # Envoyer la notification
                 success = self._send_notification(
                     provider_name, event_type, data, provider_config
                 )
@@ -113,11 +108,11 @@ class WebhookService:
                 if success:
                     self.console.print(
                         f"[green]Notification [bold]{event_type}[/bold] "
-                        f"envoyée via [bold]{provider_name}[/bold][/green]"
+                        f"sent to [bold]{provider_name}[/bold][/green]"
                     )
                 else:
                     self.console.print(
-                        f"[red]Échec de l'envoi de la notification [bold]"
+                        f"[red]Failed to send notification [bold]"
                         f"{event_type}[/bold] via [bold]{provider_name}[/bold][/red]"
                     )
 
@@ -145,10 +140,9 @@ class WebhookService:
         try:
             webhook_url = config.get("webhook_url")
             if not webhook_url:
-                logger.error(f"URL webhook manquante pour le provider {provider}")
+                logger.error(f"Missing webhook URL for provider {provider}")
                 return False
 
-            # Formatage spécifique au provider
             payload = None
             if provider == WebhookProvider.SLACK.value:
                 payload = self._format_slack_payload(event_type, data, config)
@@ -157,14 +151,12 @@ class WebhookService:
             elif provider == WebhookProvider.TEAMS.value:
                 payload = self._format_teams_payload(event_type, data, config)
             else:
-                # Provider générique
                 payload = self._format_generic_payload(event_type, data, config)
 
-            # Envoi avec retry
             return self._send_with_retry(webhook_url, payload, config)
 
         except Exception as e:
-            logger.exception(f"Erreur lors de l'envoi au provider {provider}: {str(e)}")
+            logger.exception(f"Error sending to provider {provider}: {str(e)}")
             return False
 
     def _send_with_retry(
@@ -185,26 +177,23 @@ class WebhookService:
         retry_count = self.retry_count
         retry_delay = self.retry_delay
 
-        # Headers par défaut
         headers = {"Content-Type": "application/json"}
 
-        # En cas d'échec, réessayer
         for attempt in range(retry_count + 1):
             try:
                 response = requests.post(
                     url, json=payload, headers=headers, timeout=provider_timeout
                 )
 
-                # Vérification du statut selon le provider
                 if 200 <= response.status_code < 300:
                     return True
 
                 logger.warning(
-                    f"Tentative {attempt + 1}/{retry_count + 1}: "
-                    f"Échec avec code {response.status_code}: {response.text}"
+                    f"Attempt {attempt + 1}/{retry_count + 1}: "
+                    f"Failed with status code {response.status_code}: {response.text}"
                 )
 
-                # Attendre avant de réessayer, sauf pour la dernière tentative
+                # Wait before retrying, except for the last attempt
                 if attempt < retry_count:
                     import time
 
@@ -212,7 +201,7 @@ class WebhookService:
 
             except Exception as e:
                 logger.warning(
-                    f"Tentative {attempt + 1}/{retry_count + 1}: Exception: {str(e)}"
+                    f"Attempt {attempt + 1}/{retry_count + 1}: Exception: {str(e)}"
                 )
 
         return False
@@ -236,19 +225,16 @@ class WebhookService:
         template = templates.get(event_type, templates.get("default", {}))
 
         if not template:
-            # Template minimal par défaut
             template = {
                 "title": event_type.replace("_", " ").title(),
-                "text": f"Événement {event_type}",
+                "text": f"Event {event_type}",
                 "color": "#36a64f",
             }
 
-        # Formater le titre et le texte
         title = self._format_string(template.get("title", ""), data)
         text = self._format_string(template.get("text", ""), data)
         color = template.get("color", "#36a64f")
 
-        # Construction des attachments
         attachment = {
             "color": color,
             "title": title,
@@ -258,7 +244,6 @@ class WebhookService:
             "mrkdwn_in": ["text", "fields"],
         }
 
-        # Ajout des champs
         fields = template.get("fields", [])
         for field in fields:
             field_name = self._format_string(field.get("name", ""), data)
@@ -269,14 +254,12 @@ class WebhookService:
                 {"title": field_name, "value": field_value, "short": field_short}
             )
 
-        # Message complet
         payload = {
             "username": config.get("username", "GitHub Runner Manager"),
             "text": text if not template.get("use_attachment", True) else "",
             "attachments": [attachment] if template.get("use_attachment", True) else [],
         }
 
-        # Ajouter le channel si spécifié
         channel = config.get("channel")
         if channel:
             payload["channel"] = channel
@@ -301,19 +284,16 @@ class WebhookService:
         template = templates.get(event_type, templates.get("default", {}))
 
         if not template:
-            # Template minimal par défaut
             template = {
                 "title": event_type.replace("_", " ").title(),
-                "description": f"Événement {event_type}",
-                "color": 3066993,  # Vert
+                "description": f"Event {event_type}",
+                "color": 3066993,
             }
 
-        # Formater le titre et la description
         title = self._format_string(template.get("title", ""), data)
         description = self._format_string(template.get("description", ""), data)
-        color = template.get("color", 3066993)  # Couleur par défaut: vert
+        color = template.get("color", 3066993)
 
-        # Construction de l'embed
         embed = {
             "title": title,
             "description": description,
@@ -322,7 +302,6 @@ class WebhookService:
             "timestamp": datetime.now().isoformat(),
         }
 
-        # Ajout des champs
         fields = template.get("fields", [])
         for field in fields:
             field_name = self._format_string(field.get("name", ""), data)
@@ -333,7 +312,6 @@ class WebhookService:
                 {"name": field_name, "value": field_value, "inline": field_inline}
             )
 
-        # Message complet
         payload = {
             "username": config.get("username", "GitHub Runner Manager"),
             "avatar_url": config.get("avatar_url", ""),
@@ -360,31 +338,26 @@ class WebhookService:
         template = templates.get(event_type, templates.get("default", {}))
 
         if not template:
-            # Template minimal par défaut
             template = {
                 "title": event_type.replace("_", " ").title(),
-                "themeColor": "0076D7",  # Bleu
-                "sections": [{"activityTitle": f"Événement {event_type}", "facts": []}],
+                "themeColor": "0076D7",
+                "sections": [{"activityTitle": f"Event {event_type}", "facts": []}],
             }
 
-        # Formater le titre
         title = self._format_string(template.get("title", ""), data)
         theme_color = template.get("themeColor", "0076D7")
 
-        # Sections
         sections = []
         template_sections = template.get("sections", [])
 
         for section_template in template_sections:
             section = {}
 
-            # Titre de l'activité
             if "activityTitle" in section_template:
                 section["activityTitle"] = self._format_string(
                     section_template["activityTitle"], data
                 )
 
-            # Faits
             if "facts" in section_template:
                 facts = []
                 for fact_template in section_template["facts"]:
@@ -401,7 +374,6 @@ class WebhookService:
 
             sections.append(section)
 
-        # Message complet (Card adaptative)
         payload = {
             "@type": "MessageCard",
             "@context": "http://schema.org/extensions",
@@ -427,7 +399,6 @@ class WebhookService:
         Returns:
             Payload formatted for the generic webhook
         """
-        # Message simple pour webhooks génériques
         payload = {
             "event_type": event_type,
             "timestamp": datetime.now().isoformat(),
@@ -450,8 +421,8 @@ class WebhookService:
         try:
             return template_str.format(**data)
         except KeyError as e:
-            logger.warning(f"Variable manquante dans le template: {e}")
+            logger.warning(f"Missing variable in template: {e}")
             return template_str
         except Exception as e:
-            logger.warning(f"Erreur lors du formatage: {e}")
+            logger.warning(f"Error formatting string: {e}")
             return template_str

@@ -23,25 +23,25 @@ def strip_ansi_codes(text: str) -> str:
             {"current_version": "1", "latest_version": "1", "update_available": False},
             False,
             None,
-            ["déjà à jour"],
+            ["The runner image is up to date"],
         ),
         (
             {"current_version": "1", "latest_version": "2", "update_available": True},
             False,
             None,
-            ["Nouvelle version", "Mise à jour annulée"],
+            ["New version available", "Update canceled"],
         ),
         (
             {"current_version": "1", "latest_version": "2", "update_available": True},
             True,
             {"updated": True, "new_image": "img:2"},
-            ["mis à jour vers", "img:2"],
+            ["updated to", "img:2"],
         ),
         (
             {"current_version": "1", "latest_version": "2", "update_available": True},
             True,
             {"error": "write failed"},
-            ["Erreur lors de la mise à jour", "write failed"],
+            ["Error updating", "write failed"],
         ),
         (
             {"current_version": "1", "latest_version": "2", "update_available": True},
@@ -97,10 +97,10 @@ def test_check_base_image_update_decline_build(
     res = cli.invoke(app, ["check-base-image-update"])
     assert res.exit_code == 0
     clean_stdout = strip_ansi_codes(res.stdout)
-    assert "mis à jour vers" in clean_stdout
+    assert "updated to" in clean_stdout
     assert "img:2" in clean_stdout
     mock_build.assert_not_called()
-    assert "buildée depuis" not in clean_stdout
+    assert "built from" not in clean_stdout
 
 
 @patch("src.services.docker_service.DockerService.start_runners")
@@ -111,14 +111,14 @@ def test_check_base_image_update_decline_build(
     "start_result, expected_snippets, deploy_confirm",
     [
         ({}, [], False),
-        ({"started": [{"name": "runner-a"}]}, ["runner-a démarré avec succès"], True),
+        ({"started": [{"name": "runner-a"}]}, ["runner-a started successfully"], True),
         (
             {"restarted": [{"name": "runner-b"}]},
-            ["runner-b existant mais stoppé"],
+            ["runner-b existed but stopped"],
             True,
         ),
-        ({"running": [{"name": "runner-c"}]}, ["runner-c déjà démarré"], True),
-        ({"removed": [{"name": "runner-d"}]}, ["runner-d n'est plus requis"], True),
+        ({"running": [{"name": "runner-c"}]}, ["runner-c already started"], True),
+        ({"removed": [{"name": "runner-d"}]}, ["runner-d is no longer required"], True),
     ],
 )
 def test_check_base_image_update_deploy_branches(
@@ -218,8 +218,8 @@ def test_check_base_image_update_webhook_called(
                 assert "{" not in val and "}" not in val
 
     assert any(
-        t == "Mise à jour disponible" for t in titles
-    ), f"Aucune notif 'Mise à jour disponible' dans: {titles}"
+        t == "Update Available" for t in titles
+    ), f"Notification 'Update Available' not found in : {titles}"
 
 
 def test_webhook_channel_removes_restarted_false(monkeypatch):

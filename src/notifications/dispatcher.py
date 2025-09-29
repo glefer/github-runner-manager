@@ -1,4 +1,4 @@
-"""Dispatcher qui route les événements vers les canaux enregistrés."""
+"""Dispatcher that routes events to registered channels."""
 
 from __future__ import annotations
 

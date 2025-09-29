@@ -1,26 +1,27 @@
+
 # Scheduler – GitHub Runner Manager
 
-Ce document explique la configuration et le fonctionnement du scheduler intégré à GitHub Runner Manager.
+This document explains the configuration and operation of the scheduler integrated into GitHub Runner Manager.
 
-## Fonctionnement général
+## General Operation
 
-Le scheduler permet d'automatiser des actions (vérification, build, etc.) sur les runners selon une planification flexible définie dans le fichier de configuration (`runners_config.yaml`).
+The scheduler automates actions (check, build, etc.) on runners according to a flexible schedule defined in the configuration file (`runners_config.yaml`).
 
-- **Intervalle** : Déclenchement périodique (secondes, minutes, heures)
-- **Fenêtre horaire** : Plage d'heures autorisées pour l'exécution
-- **Jours** : Jours de la semaine où le scheduler est actif
-- **Actions** : Liste des actions à exécuter (ex : `check`, `build`, `deploy`)
-- **Nombre maximal de tentatives** : Arrêt automatique après X échecs consécutifs
+- **Interval**: Periodic trigger (seconds, minutes, hours)
+- **Time window**: Allowed time range for execution
+- **Days**: Days of the week when the scheduler is active
+- **Actions**: List of actions to execute (e.g., `check`, `build`, `deploy`)
+- **Maximum retries**: Automatic stop after X consecutive failures
 
-## Exemple de configuration (`runners_config.yaml`)
+## Example configuration (`runners_config.yaml`)
 
-## Lancement et configuration du scheduler
+## Starting and configuring the scheduler
 
-Depuis la version avec Supervisor, le scheduler est automatiquement lancé dans le conteneur via supervisord. Il n'est plus nécessaire de configurer `scheduler.enabled` dans le fichier de configuration.
+Since the Supervisor version, the scheduler is automatically started in the container via supervisord. It is no longer necessary to configure `scheduler.enabled` in the configuration file.
 
-Le scheduler démarre automatiquement si le conteneur est lancé sans argument, grâce à l'entrypoint et à la configuration supervisord.
+The scheduler starts automatically if the container is launched without arguments, thanks to the entrypoint and supervisord configuration.
 
-Exemple de lancement du scheduler via Docker :
+Example of starting the scheduler via Docker:
 
 ```bash
 docker run --rm -d \
@@ -30,53 +31,53 @@ docker run --rm -d \
    a/github-runner-manager
 ```
 
-## Exemple de configuration (`runners_config.yaml`)
+## Example configuration (`runners_config.yaml`)
 
 ```yaml
 scheduler:
-  check_interval: "30m"         # Intervalle entre deux exécutions (ex: 30s, 10m, 1h)
-  time_window: "08:00-20:00"    # Plage horaire autorisée (HH:MM-HH:MM)
-  days: [mon, tue, wed, thu, fri] # Jours autorisés (mon, tue, ...)
-  actions: [check, build, deploy] # Actions à exécuter (deploy = auto start des runners après build)
-  max_retries: 3                 # Nombre maximal de tentatives en cas d'échec
+  check_interval: "30m"         # Interval between two executions (e.g.: 30s, 10m, 1h)
+  time_window: "08:00-20:00"    # Allowed time window (HH:MM-HH:MM)
+  days: [mon, tue, wed, thu, fri] # Allowed days (mon, tue, ...)
+  actions: [check, build, deploy] # Actions to execute (deploy = auto start runners after build)
+  max_retries: 3                 # Maximum number of retries in case of failure
 ```
 
-## Détail des paramètres
+## Parameter details
 
-- **check_interval** : Format `<nombre><unité>` (ex: `30s`, `10m`, `1h`). Unité :
-   - `s` : secondes
-   - `m` : minutes
-   - `h` : heures
-- **time_window** : Plage horaire d'exécution autorisée (ex: `08:00-20:00`)
-- **days** : Liste des jours autorisés (`mon`, `tue`, `wed`, `thu`, `fri`, `sat`, `sun`)
-- **actions** :
-   - `check` : Vérifie si une nouvelle version de l'image de base est disponible
-   - `build` : Reconstruit les images runners si une mise à jour est détectée (et met à jour la config si update)
-   - `deploy` : Si présent avec `build`, et au moins une image a été reconstruite, lance automatiquement les runners (start/restart) sans interaction.
-- **max_retries** : Nombre maximal de tentatives consécutives avant arrêt automatique
+- **check_interval**: Format `<number><unit>` (e.g.: `30s`, `10m`, `1h`). Units:
+   - `s`: seconds
+   - `m`: minutes
+   - `h`: hours
+- **time_window**: Allowed execution time window (e.g.: `08:00-20:00`)
+- **days**: List of allowed days (`mon`, `tue`, `wed`, `thu`, `fri`, `sat`, `sun`)
+- **actions**:
+   - `check`: Checks if a new version of the base image is available
+   - `build`: Rebuilds runner images if an update is detected (and updates config if needed)
+   - `deploy`: If present with `build`, and at least one image has been rebuilt, automatically starts/restarts runners without interaction.
+- **max_retries**: Maximum number of consecutive retries before automatic stop
 
-## Fonctionnement détaillé
+## Detailed operation
 
-1. **Chargement de la configuration** :
-   - Les paramètres sont validés (syntaxe, valeurs autorisées).
-2. **Planification** :
-   - Le scheduler utilise la librairie Python [`schedule`](https://schedule.readthedocs.io/) pour planifier les tâches.
-   - L'intervalle (`check_interval`) et les jours (`days`) sont combinés pour définir la fréquence d'exécution.
-   - La plage horaire (`time_window`) limite l'exécution aux heures autorisées.
-3. **Exécution** :
-   - À chaque déclenchement, le scheduler vérifie la fenêtre horaire et exécute les actions configurées.
-   - En cas d'échec, le compteur de tentatives est incrémenté. Si le maximum est atteint, le scheduler s'arrête.
+1. **Loading configuration**:
+   - Parameters are validated (syntax, allowed values).
+2. **Scheduling**:
+   - The scheduler uses the Python library [`schedule`](https://schedule.readthedocs.io/) to schedule tasks.
+   - The interval (`check_interval`) and days (`days`) are combined to define the execution frequency.
+   - The time window (`time_window`) limits execution to allowed hours.
+3. **Execution**:
+   - At each trigger, the scheduler checks the time window and executes the configured actions.
+   - In case of failure, the retry counter is incremented. If the maximum is reached, the scheduler stops.
 
-## Bonnes pratiques
+## Best practices
 
-- Utilisez des intervalles raisonnables pour éviter une charge excessive.
-- Privilégiez des plages horaires adaptées à vos besoins (ex : heures ouvrées).
-- Surveillez les logs pour détecter d'éventuels échecs répétés.
+- Use reasonable intervals to avoid excessive load.
+- Prefer time windows adapted to your needs (e.g.: business hours).
+- Monitor logs to detect repeated failures.
 
-## Dépendances
+## Dependencies
 
-- [schedule](https://pypi.org/project/schedule/) : Librairie de planification Python
+- [schedule](https://pypi.org/project/schedule/): Python scheduling library
 
 ---
 
-Pour toute question ou suggestion, ouvrez une issue sur le dépôt GitHub du projet.
+For any questions or suggestions, open an issue on the project's GitHub repository.

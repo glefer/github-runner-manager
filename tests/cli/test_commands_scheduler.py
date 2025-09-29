@@ -27,7 +27,7 @@ class TestCommands:
         scheduler_service.start.assert_called_once()
         scheduler_service.stop.assert_called_once()
         console.print.assert_called_once_with(
-            "[yellow]Scheduler arrêté manuellement.[/yellow]"
+            "[yellow]Scheduler stopped manually.[/yellow]"
         )
 
     def test_scheduler_exception(self):
@@ -40,5 +40,5 @@ class TestCommands:
 
         scheduler_service.start.assert_called_once()
         console.print.assert_called_once_with(
-            f"[red]Erreur dans le scheduler: {str(test_exception)}[/red]"
+            f"[red]Error in scheduler: {str(test_exception)}[/red]"
         )

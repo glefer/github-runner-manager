@@ -77,7 +77,7 @@ def test_interactive_event_type_prompt(
 
     def fake_prompt_ask(msg, choices, default):
         called["asked"] = True
-        assert "événement" in msg
+        assert "Choose an event type" in msg
         return "runner_started"
 
     monkeypatch.setattr(
@@ -159,7 +159,7 @@ def test_interactive_confirm_cancel(monkeypatch, dummy_config, dummy_webhook_ser
     printed = {}
 
     def fake_print(msg, *a, **k):
-        if "Envoi annulé" in str(msg):
+        if "Sending cancelled" in str(msg):
             printed["cancel"] = True
 
     console = types.SimpleNamespace(print=fake_print)
@@ -197,9 +197,9 @@ def test_affichage_resultats(monkeypatch, dummy_config, dummy_webhook_service):
     printed = {"success": 0, "fail": 0}
 
     def fake_print(msg, *a, **k):
-        if "Notification envoyée avec succès" in str(msg):
+        if "Notification sent successfully" in str(msg):
             printed["success"] += 1
-        if "Échec de l'envoi" in str(msg):
+        if "Sending failed" in str(msg):
             printed["fail"] += 1
 
     console = types.SimpleNamespace(print=fake_print)

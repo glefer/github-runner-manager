@@ -1,4 +1,4 @@
-"""Point d'entrée pour les services partagés."""
+"""Entrypoint for services package."""
 
 from src.services.config_service import ConfigService
 from src.services.docker_service import DockerService

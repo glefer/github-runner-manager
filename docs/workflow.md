@@ -1,33 +1,32 @@
-# Documentation du fonctionnement de l'application GitHub Runner Manager
+# GitHub Runner Manager Application Workflow Documentation
 
-## Présentation générale
+## General Overview
 
-L'application permet de gérer dynamiquement des runners GitHub auto-hébergés via une interface en ligne de commande (CLI). Elle facilite le déploiement, la gestion, la configuration et la supervision de runners dans des environnements Docker, avec prise en charge de différents langages et versions (Node, PHP, etc.).
+The application allows dynamic management of self-hosted GitHub runners via a command-line interface (CLI). It facilitates deployment, management, configuration, and monitoring of runners in Docker environments, with support for different languages and versions (Node, PHP, etc.).
 
-## Fonctionnalités principales
+## Main Features
 
-- **Déploiement de runners** : Création et démarrage de nouveaux runners selon la configuration YAML.
-- **Arrêt et suppression** : Arrêt, suppression ou nettoyage des runners existants.
-- **Mise à jour des images** : Vérification et mise à jour des images Docker de base utilisées par les runners.
-- **Liste et statut** : Affichage de la liste des runners, de leur état et de leurs informations détaillées.
-- **Support multi-langages** : Gestion de runners pour différents environnements (Node, PHP, etc.) via des Dockerfiles dédiés.
-- **Configuration centralisée** : Utilisation d'un fichier `runners_config.yaml` pour décrire les runners à gérer.
+- **Runner Deployment**: Create and start new runners according to the YAML configuration.
+- **Stop and Remove**: Stop, remove, or clean up existing runners.
+- **Image Update**: Check and update the base Docker images used by runners.
+- **List and Status**: Display the list of runners, their state, and detailed information.
+- **Multi-language Support**: Manage runners for different environments (Node, PHP, etc.) via dedicated Dockerfiles.
+- **Centralized Configuration**: Use a `runners_config.yaml` file to describe the runners to manage.
 
-## États possibles d'un runner
-$	$
-Un runner peut se trouver dans l'un des états suivants :
+## Possible Runner States
 
-- **créé** : Le runner est configuré mais pas encore démarré.
-- **démarré** : Le runner est actif et prêt à exécuter des jobs GitHub Actions.
-- **en cours d'exécution** : Le runner exécute actuellement un job.
-- **arrêté** : Le runner est stoppé (container Docker arrêté).
-- **supprimé** : Le runner et son container ont été supprimés.
-- **en erreur** : Une erreur est survenue lors d'une opération (démarrage, arrêt, suppression, etc.).
+A runner can be in one of the following states:
 
-## Workflows typiques
+- **created**: The runner is configured but not yet started.
+- **started**: The runner is active and ready to execute GitHub Actions jobs.
+- **running**: The runner is currently executing a job.
+- **stopped**: The runner is stopped (Docker container stopped).
+- **removed**: The runner and its container have been deleted.
+- **error**: An error occurred during an operation (start, stop, remove, etc.).
 
+## Typical Workflows
 
-### 1. Déploiement d'un nouveau runner
+### 1. Deploying a New Runner
 
 ```ascii
   +---------------------+
@@ -36,96 +35,95 @@ Un runner peut se trouver dans l'un des états suivants :
           |
           v
   +---------------------+
-  |  Commande CLI       |
+  |  CLI Command        |
   |  (deploy/start)     |
   +----------+----------+
           |
           v
   +---------------------+
-  |  Runner "créé"      |
+  |  Runner "created"   |
   +----------+----------+
           |
           v
   +---------------------+
-  |  Runner "démarré"   |
+  |  Runner "started"   |
   +---------------------+
 ```
 
-### 2. Arrêt d'un runner
+### 2. Stopping a Runner
 
 ```ascii
   +---------------------+
-  | Runner "démarré"    |
+  | Runner "started"    |
   +----------+----------+
           |
           v
   +---------------------+
-  | Commande CLI stop   |
+  | CLI Command stop    |
   +----------+----------+
           |
           v
   +---------------------+
-  | Runner "arrêté"     |
+  | Runner "stopped"    |
   +---------------------+
 ```
 
-### 3. Suppression d'un runner
+### 3. Removing a Runner
 
 ```ascii
   +---------------------+
-  | Runner "arrêté"     |
+  | Runner "stopped"    |
   +----------+----------+
           |
           v
   +---------------------+
-  | Commande CLI remove |
+  | CLI Command remove  |
   +----------+----------+
           |
           v
   +---------------------+
-  | Runner "supprimé"   |
+  | Runner "removed"    |
   +---------------------+
 ```
 
-### 4. Mise à jour d'une image de base
+### 4. Updating a Base Image
 
 ```ascii
-  +-----------------------------+
-  | Commande CLI check/update   |
-  +-------------+---------------+
-            |
-            v
-  +-----------------------------+
-  | Nouvelle image disponible ? |
-  +-------------+---------------+
-           Oui / Non
-           /       \
-          v         v
-  [Mise à jour]  [Aucune action]
-      |
-      v
-  +-----------------------------+
-  | Redéploiement runners liés  |
-  +-----------------------------+
+        +-----------------------------+
+        | CLI Command check/update    |
+        +-------------+---------------+
+                                                |
+                                                v
+        +-----------------------------+
+        | New image available?        |
+        +-------------+---------------+
+                                         Yes / No
+                                         /       \
+                                        v         v
+        [Update]      [No action]
+                        |
+                        v
+        +-----------------------------+
+        | Redeploy related runners     |
+        +-----------------------------+
 ```
 
-## Exemples de commandes CLI
+## CLI Command Examples
 
-- `python main.py list` : Liste tous les runners et leur état.
-- `python main.py start <runner>` : Démarre un runner spécifique.
-- `python main.py stop <runner>` : Arrête un runner spécifique.
-- `python main.py remove <runner>` : Supprime un runner spécifique.
-- `python main.py check-base-image-update` : Vérifie les mises à jour des images Docker de base.
+- `python main.py list`: Lists all runners and their state.
+- `python main.py start <runner>`: Starts a specific runner.
+- `python main.py stop <runner>`: Stops a specific runner.
+- `python main.py remove <runner>`: Removes a specific runner.
+- `python main.py check-base-image-update`: Checks for updates to base Docker images.
 
-## Architecture technique
+## Technical Architecture
 
-- **Fichier de configuration** : `runners_config.yaml` décrit les runners à gérer.
-- **Services** :
-  - `config_service.py` : Gestion de la configuration.
-  - `docker_service.py` : Gestion des containers Docker.
-- **CLI** : Interface utilisateur pour piloter l'application.
-
+- **Configuration File**: `runners_config.yaml` describes the runners to manage.
+- **Services**:
+        - `config_service.py`: Configuration management.
+        - `docker_service.py`: Docker container management.
+- **CLI**: User interface to control the application.
 
 ---
 
-Pour plus de détails, consulter le reste de la documentation ou le code source.
+For more details, see the rest of the documentation or the source code.

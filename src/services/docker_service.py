@@ -329,7 +329,7 @@ class DockerService:
                 continue
 
             try:
-                image_tag = f"itroom/{techno}:{techno_version}-{runner_version}"
+                image_tag = f"{techno}:{techno_version}-{runner_version}"
                 build_dir = os.path.dirname(build_image) or "."
                 dockerfile_path = build_image
 
@@ -401,7 +401,7 @@ class DockerService:
             base_image = getattr(runner, "base_image", base_image_default)
             org_url = getattr(runner, "org_url", org_url_default)
             if build_image and techno and techno_version:
-                image = f"itroom/{techno}:{techno_version}-{runner_version}"
+                image = f"{techno}:{techno_version}-{runner_version}"
             else:
                 image = f"{prefix}:latest"
 

@@ -76,7 +76,9 @@ def test_start_runners_running_and_restarted(
     base_image = cfg.runners_defaults.base_image
     m = __import__("re").search(r":([\d.]+)$", base_image)
     runner_version = m.group(1) if m else "latest"
-    expected_image = f"itroom/{cfg.runners[0].techno}:{cfg.runners[0].techno_version}-{runner_version}"
+    expected_image = (
+        f"{cfg.runners[0].techno}:{cfg.runners[0].techno_version}-{runner_version}"
+    )
 
     # Mocks
     docker_service.image_exists = MagicMock(return_value=True)

@@ -2,7 +2,7 @@
 name = "github-runner-manager"
 version = "0.1.0"
 description = "GitHub Runner Manager CLI for Docker-based GitHub Actions Runners"
-authors = ["Grégory LEFER <glefer@itroom.fr>"]
+authors = ["Grégory LEFER <contact@glefer.fr>"]
 readme = "README.md"
 packages = [{include = "src"}]
 

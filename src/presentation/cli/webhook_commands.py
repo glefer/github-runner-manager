@@ -1,4 +1,6 @@
-"""Commande de débogage et test des webhooks."""
+"""
+Webhook-related CLI commands for testing and debugging.
+"""
 
 import datetime
 import json
@@ -15,7 +17,7 @@ from src.services.webhook_service import WebhookService
 
 
 class MockEvent(str, Enum):
-    """Types d'événements pour les simulations de tests webhook."""
+    """Events types for webhook test simulations."""
 
     RUNNER_STARTED = "runner_started"
     RUNNER_STOPPED = "runner_stopped"
@@ -27,45 +29,44 @@ class MockEvent(str, Enum):
     UPDATE_APPLIED = "update_applied"
 
 
-# Données de simulation pour chaque type d'événement
 MOCK_DATA = {
     MockEvent.RUNNER_STARTED: {
         "runner_id": "php83-1",
-        "runner_name": "itroom-runner-php83-1",
-        "labels": "itroom-runner-set-php83, php8.3",
+        "runner_name": "my-runner-php83-1",
+        "labels": "my-runner-set-php83, php8.3",
         "techno": "php",
         "techno_version": "8.3",
     },
     MockEvent.RUNNER_STOPPED: {
         "runner_id": "php83-1",
-        "runner_name": "itroom-runner-php83-1",
+        "runner_name": "my-runner-php83-1",
         "uptime": "3h 24m 12s",
     },
     MockEvent.RUNNER_ERROR: {
         "runner_id": "php83-1",
-        "runner_name": "itroom-runner-php83-1",
-        "error_message": "Le runner n'a pas pu s'enregistrer auprès de GitHub: token invalide.",
+        "runner_name": "my-runner-php83-1",
+        "error_message": "The runner could not register with GitHub: invalid token.",
     },
     MockEvent.BUILD_STARTED: {
-        "image_name": "itroom-runner-php83",
+        "image_name": "my-runner-php83",
         "base_image": "ghcr.io/actions/actions-runner:2.328.0",
         "techno": "php",
         "techno_version": "8.3",
     },
     MockEvent.BUILD_COMPLETED: {
-        "image_name": "itroom-runner-php83",
+        "image_name": "my-runner-php83",
         "duration": "45",
         "image_size": "1.2GB",
     },
     MockEvent.BUILD_FAILED: {
-        "image_name": "itroom-runner-php83",
-        "error_message": "Erreur lors de l'étape 3/8: npm install a échoué avec le code 1",
+        "image_name": "my-runner-php83",
+        "error_message": "Error during step 3/8: npm install failed with code 1",
     },
     MockEvent.UPDATE_AVAILABLE: {
         "image_name": "actions-runner",
         "current_version": "2.328.0",
         "new_version": "2.329.0",
-        "auto_update": "Activé",
+        "auto_update": "Enabled",
     },
     MockEvent.UPDATE_APPLIED: {
         "image_name": "actions-runner",
@@ -84,102 +85,88 @@ def test_webhooks(
     console: Optional[Console] = None,
 ) -> Dict[str, Any]:
     """
-    Teste l'envoi de webhooks avec des données simulées.
+    Test sending webhooks with simulated data.
 
     Args:
-        config_service: Service de configuration
-        event_type: Type d'événement à simuler (si None, un menu sera affiché)
-        provider: Fournisseur de webhook spécifique à utiliser
-                (Si None, tous les fournisseurs configurés seront utilisés)
-        interactive: Mode interactif avec confirmation et affichage détaillé
-        console: Console Rich pour l'affichage
+        config_service: Configuration service
+        event_type: Event type to simulate (if None, a menu will be displayed)
+        provider: Specific webhook provider to use
+                (If None, all configured providers will be used)
+        interactive: Interactive mode with confirmation and detailed display
+        console: Rich Console for display
 
     Returns:
-        Résultat de l'opération avec statuts pour chaque provider
+        Result of the operation with statuses for each provider
     """
     console = console or Console()
     config = config_service.load_config()
 
     if not hasattr(config, "webhooks") or not config.webhooks:
         console.print(
-            "[red]Aucune configuration webhook trouvée dans runners_config.yaml[/red]"
+            "[red]No webhook configuration found in runners_config.yaml[/red]"
         )
-        return {"error": "Aucune configuration webhook trouvée"}
+        return {"error": "No webhook configuration found"}
 
-    # Initialiser le service webhook
     webhook_service = WebhookService(config.webhooks.dict(), console)
 
-    # Si aucun provider n'est initialisé
     if not webhook_service.providers:
-        console.print(
-            "[red]Aucun provider webhook n'est activé dans la configuration[/red]"
-        )
-        return {"error": "Aucun provider activé"}
+        console.print("[red]No webhook provider is enabled in the configuration[/red]")
+        return {"error": "No provider enabled"}
 
-    # Liste des providers disponibles
     available_providers = list(webhook_service.providers.keys())
 
-    # Afficher les providers disponibles
     if interactive:
-        console.print("[green]Providers webhook disponibles:[/green]")
+        console.print("[green]Available webhook providers:[/green]")
         for provider_name in available_providers:
             console.print(f"  - {provider_name}")
 
-    # Si aucun event_type n'est fourni, afficher un menu interactif
     if not event_type and interactive:
         event_choices = [e.value for e in MockEvent]
         event_type = Prompt.ask(
-            "Choisissez un type d'événement à simuler",
+            "Choose an event type to simulate",
             choices=event_choices,
             default=MockEvent.RUNNER_STARTED,
         )
     elif not event_type:
         event_type = MockEvent.RUNNER_STARTED
 
-    # Vérifier si l'event_type est valide
     if event_type not in [e.value for e in MockEvent]:
-        console.print(f"[red]Type d'événement '{event_type}' non valide[/red]")
-        return {"error": f"Type d'événement '{event_type}' non valide"}
+        console.print(f"[red]Invalid event type '{event_type}'[/red]")
+        return {"error": f"Invalid event type '{event_type}'"}
 
-    # Si aucun provider n'est fourni et qu'on est en mode interactif, demander
     if not provider and interactive and len(available_providers) > 1:
         provider = Prompt.ask(
-            "Choisissez un provider spécifique (laisser vide pour tous)",
+            "Choose a specific provider (leave blank for all)",
             choices=available_providers + [""],
             default="",
         )
 
-    # Récupérer les données simulées pour cet événement
     mock_data = MOCK_DATA.get(event_type, {}).copy()
 
-    # Ajouter un timestamp
     mock_data["timestamp"] = datetime.datetime.now().isoformat()
 
-    # Afficher un aperçu des données
     if interactive:
-        console.print("\n[yellow]Données de simulation qui seront envoyées:[/yellow]")
-        console.print(Panel(json.dumps(mock_data, indent=2), title="Données"))
+        console.print("\n[yellow]Simulation data to be sent:[/yellow]")
+        console.print(Panel(json.dumps(mock_data, indent=2), title="Data"))
 
-        # Demander confirmation
-        if not typer.confirm("Envoyer cette notification webhook?"):
-            console.print("[yellow]Envoi annulé[/yellow]")
+        # Ask for confirmation
+        if not typer.confirm("Send this webhook notification?"):
+            console.print("[yellow]Sending cancelled[/yellow]")
             return {"cancelled": True}
 
-    # Envoyer la notification
     results = webhook_service.notify(
         event_type, mock_data, provider if provider else None
     )
 
-    # Afficher les résultats
     if interactive:
-        console.print("\n[bold]Résultats de l'envoi:[/bold]")
+        console.print("\n[bold]Results of the sending:[/bold]")
         for provider_name, success in results.items():
             if success:
                 console.print(
-                    f"[green]✅ {provider_name}: Notification envoyée avec succès[/green]"
+                    f"[green]✅ {provider_name}: Notification sent successfully[/green]"
                 )
             else:
-                console.print(f"[red]❌ {provider_name}: Échec de l'envoi[/red]")
+                console.print(f"[red]❌ {provider_name}: Sending failed[/red]")
 
     return {
         "event_type": event_type,
@@ -195,47 +182,41 @@ def debug_test_all_templates(
     console: Optional[Console] = None,
 ) -> Dict[str, Any]:
     """
-    Teste tous les templates configurés pour un provider ou tous les providers.
+    Test all templates configured for a provider or all providers.
 
     Args:
-        config_service: Service de configuration
-        provider: Provider spécifique à tester (si None, tous les providers seront testés)
-        console: Console Rich pour l'affichage
+        config_service: Configuration service
+        provider: Specific provider to test (if None, all providers will be tested)
+        console: Rich Console for display
 
     Returns:
-        Résultats des tests pour chaque template
+        Test results for each template
     """
     console = console or Console()
     config = config_service.load_config()
 
     if not hasattr(config, "webhooks") or not config.webhooks:
         console.print(
-            "[red]Aucune configuration webhook trouvée dans runners_config.yaml[/red]"
+            "[red]No webhook configuration found in runners_config.yaml[/red]"
         )
-        return {"error": "Aucune configuration webhook trouvée"}
+        return {"error": "No webhook configuration found"}
 
-    # Initialiser le service webhook
     webhook_service = WebhookService(config.webhooks.dict(), console)
 
-    # Si aucun provider n'est initialisé
     if not webhook_service.providers:
-        console.print(
-            "[red]Aucun provider webhook n'est activé dans la configuration[/red]"
-        )
-        return {"error": "Aucun provider activé"}
+        console.print("[red]No webhook provider is enabled in the configuration[/red]")
+        return {"error": "No provider enabled"}
 
-    # Liste des providers à tester
     providers_to_test = (
         [provider] if provider else list(webhook_service.providers.keys())
     )
 
     results = {}
 
-    # Pour chaque provider
     for provider_name in providers_to_test:
         if provider_name not in webhook_service.providers:
             console.print(
-                f"[yellow]Provider '{provider_name}' non configuré, ignoré[/yellow]"
+                f"[yellow]Provider '{provider_name}' not configured, skipping[/yellow]"
             )
             continue
 
@@ -243,22 +224,18 @@ def debug_test_all_templates(
         provider_events = provider_config.get("events", [])
 
         console.print(
-            f"\n[bold blue]Test des templates pour {provider_name}:[/bold blue]"
+            f"\n[bold blue]Testing templates for {provider_name}:[/bold blue]"
         )
 
         provider_results = {}
 
-        # Pour chaque type d'événement disponible
         for event_type in [e.value for e in MockEvent]:
-            # Si cet événement est configuré pour ce provider
             if event_type in provider_events:
-                console.print(f"\n[yellow]Test du template '{event_type}':[/yellow]")
+                console.print(f"\n[yellow]Testing template '{event_type}':[/yellow]")
 
-                # Récupérer les données simulées
                 mock_data = MOCK_DATA.get(event_type, {}).copy()
                 mock_data["timestamp"] = datetime.datetime.now().isoformat()
 
-                # Envoyer la notification
                 success = webhook_service._send_notification(
                     provider_name, event_type, mock_data, provider_config
                 )
@@ -267,13 +244,13 @@ def debug_test_all_templates(
 
                 if success:
                     console.print(
-                        f"[green]✅ {event_type}: Notification envoyée avec succès[/green]"
+                        f"[green]✅ {event_type}: Notification sent successfully[/green]"
                     )
                 else:
-                    console.print(f"[red]❌ {event_type}: Échec de l'envoi[/red]")
+                    console.print(f"[red]❌ {event_type}: Sending failed[/red]")
             else:
                 console.print(
-                    f"[dim]Template '{event_type}' non configuré pour {provider_name}, ignoré[/dim]"
+                    f"[dim]Template '{event_type}' not configured for {provider_name}, skipping[/dim]"
                 )
 
         results[provider_name] = provider_results

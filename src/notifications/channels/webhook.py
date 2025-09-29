@@ -1,4 +1,4 @@
-"""Canal de notification via le service Webhook existant."""
+"""Notification channel via existing Webhook service."""
 
 from __future__ import annotations
 

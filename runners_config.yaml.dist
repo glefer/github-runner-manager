@@ -1,8 +1,8 @@
-# Configuration globale des runners GitHub
+# Global configuration for GitHub runners
 runners_defaults:
-  base_image: ghcr.io/actions/actions-runner:2.328.0  # Image de base commune
+  base_image: ghcr.io/actions/actions-runner:2.328.0  # Common base image
   org_url: https://github.com/it-room
-  # Le token GitHub doit être défini dans la variable d'environnement GITHUB_TOKEN (voir .env)
+  # The GitHub token must be set in the GITHUB_TOKEN environment variable (see .env)
 
 runners:
   - id: sample
@@ -14,9 +14,9 @@ runners:
     techno_version: 8.3
 
 scheduler:
-  check_interval: "15s"           # Fréquence de vérification des mises à jour
-  time_window: "07:00-23:00"     # Plage horaire autorisée pour les actions automatiques
-  days: ["mon", "wed", "fri"]    # Jours d'exécution
+  check_interval: "15s"           # Update check frequency
+  time_window: "07:00-23:00"     # Allowed time window for automatic actions
+  days: ["mon", "wed", "fri"]    # Execution days
   actions:
     - check
     - build
@@ -25,20 +25,20 @@ scheduler:
 
 
 webhooks:
-  # Configuration générale des webhooks
+  # General webhook configuration
   enabled: true
-  timeout: 10  # Délai d'attente en secondes global
+  timeout: 10  # Global timeout in seconds
   retry_count: 3
-  retry_delay: 5  # Secondes
+  retry_delay: 5  # Seconds
   
-  # Configuration spécifique pour Slack
+  # Slack specific configuration
   slack:
     enabled: true
     webhook_url: "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX"
     username: "GitHub Runner Bot"
-    timeout: 10  # Délai d'attente spécifique à Slack
+    timeout: 10  # Slack-specific timeout
     
-    # Liste des événements à notifier
+    # List of events to notify
     events:
       - runner_started
       - runner_stopped
@@ -49,108 +49,108 @@ webhooks:
       - update_available
       - update_applied
   
-    # Templates de messages pour différents événements
+    # Message templates for different events
     templates:
-      # Template par défaut (utilisé si pas de template spécifique)
+      # Default template (used if no specific template)
       default:
-        title: "Notification GitHub Runner Manager"
-        text: "Un événement s'est produit"
-        color: "#36a64f"  # Vert
+        title: "GitHub Runner Manager Notification"
+        text: "An event has occurred"
+        color: "#36a64f"  # Green
         use_attachment: true
         fields: []
         
-      # Runner démarré
+      # Runner started
       runner_started:
-        title: "Runner démarré"
-        text: "Le runner *{runner_name}* a été démarré avec succès"
-        color: "#36a64f"  # Vert
+        title: "Runner Started"
+        text: "Runner *{runner_name}* started successfully"
+        color: "#36a64f"  # Green
         fields:
           - name: "Labels"
             value: "{labels}"
             short: true
 
           
-      # Runner arrêté
+      # Runner stopped
       runner_stopped:
-        title: "Runner arrêté"
-        text: "Le runner *{runner_name}* a été arrêté"
+        title: "Runner Stopped"
+        text: "Runner *{runner_name}* has been stopped"
         color: "#ff9000"  # Orange
         fields: []
             
-      # Erreur runner
+      # Runner error
       runner_error:
-        title: "⚠️ Erreur Runner"
-        text: "Une erreur s'est produite avec le runner *{runner_name}*"
-        color: "#ff0000"  # Rouge
+        title: "⚠️ Runner Error"
+        text: "An error occurred with runner *{runner_name}*"
+        color: "#ff0000"  # Red
         fields:
           - name: "Runner ID"
             value: "{runner_id}"
             short: true
-          - name: "Erreur"
+          - name: "Error"
             value: "```{error_message}```"
             short: false
             
-      # Build commencé
+      # Build started
       build_started:
-        title: "Build démarré"
-        text: "Construction de l'image *{image_name}* démarrée"
-        color: "#3AA3E3"  # Bleu
+        title: "Build Started"
+        text: "Image build *{image_name}* started"
+        color: "#3AA3E3"  # Blue
         fields:
           - name: "Base image"
             value: "{base_image}"
             short: true
-          - name: "Technologie"
+          - name: "Technology"
             value: "{techno} {techno_version}"
             short: true
             
-      # Build terminé
+      # Build completed
       build_completed:
-        title: "Build terminé"
-        text: "Construction de l'image *{image_name}* terminée avec succès en {duration}s"
-        color: "#36a64f"  # Vert
+        title: "Build Completed"
+        text: "Image build *{image_name}* completed successfully in {duration}s"
+        color: "#36a64f"  # Green
         fields:
           - name: "Image"
             value: "{image_name}"
             short: true
-          - name: "Taille"
+          - name: "Size"
             value: "{image_size}"
             short: true
             
-      # Build échoué
+      # Build failed
       build_failed:
-        title: "⚠️ Build échoué"
-        text: "La construction de l'image *{image_name}* a échoué"
-        color: "#ff0000"  # Rouge
+        title: "⚠️ Build Failed"
+        text: "Image build *{image_name}* failed"
+        color: "#ff0000"  # Red
         fields:
-          - name: "Erreur"
+          - name: "Error"
             value: "```{error_message}```"
             short: false
             
-      # Mise à jour disponible
+      # Update available
       update_available:
-        title: "Mise à jour disponible"
-        text: "Une mise à jour est disponible pour l'image *{image_name}*"
-        color: "#3AA3E3"  # Bleu
+        title: "Update Available"
+        text: "An update is available for image *{image_name}*"
+        color: "#3AA3E3"  # Blue
         fields:
-          - name: "Version actuelle"
+          - name: "Current version"
             value: "{current_version}"
             short: true
-          - name: "Nouvelle version"
+          - name: "New version"
             value: "{available_version}"
             short: true
             
-      # Mise à jour appliquée
+      # Update applied
       update_applied:
-        title: "Mise à jour appliquée"
-        text: "L'image *{image_name}* a été mise à jour avec succès"
-        color: "#36a64f"  # Vert
+        title: "Update Applied"
+        text: "Image *{image_name}* has been updated successfully"
+        color: "#36a64f"  # Green
         fields:
-          - name: "Ancienne version"
+          - name: "Old version"
             value: "{old_version}"
             short: true
-          - name: "Nouvelle version"
+          - name: "New version"
             value: "{new_version}"
             short: true
-          - name: "Runners impactés"
+          - name: "Affected runners"
             value: "{affected_runners}"
             short: false

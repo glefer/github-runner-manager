@@ -1,6 +1,7 @@
-"""Configuration de tests spécifique au dossier services.
+"""
+Configuration for tests in the services folder.
 
-Ce module fournit des fixtures et des hooks pour les tests dans le dossier services.
+This module provides fixtures and hooks for tests in the services folder.
 """
 
 import sys
@@ -9,7 +10,7 @@ import pytest
 
 
 def pytest_configure(config):
-    """Ajout du marqueur isolated pour isoler certains tests sensibles aux effets de bord."""
+    """Add the isolated marker to isolate certain tests from side effects."""
     config.addinivalue_line(
         "markers", "isolated: mark test as isolated to avoid side effects"
     )

@@ -85,7 +85,7 @@ def test_build_image_happy_path(docker_service):
         client.api = api_client
         mock_docker.return_value = client
         docker_service.build_image(
-            image_tag="itroom/python:3.11-2.300.0",
+            image_tag="python:3.11-2.300.0",
             dockerfile_path="config/Dockerfile.node20",
             build_dir="config",
             build_args={"BASE_IMAGE": "ghcr.io/actions/runner:2.300.0"},
@@ -94,7 +94,7 @@ def test_build_image_happy_path(docker_service):
         args, kwargs = api_client.build.call_args
         assert kwargs["path"] == "config"
         assert kwargs["dockerfile"] == "Dockerfile.node20"
-        assert kwargs["tag"] == "itroom/python:3.11-2.300.0"
+        assert kwargs["tag"] == "python:3.11-2.300.0"
         assert kwargs["buildargs"] == {"BASE_IMAGE": "ghcr.io/actions/runner:2.300.0"}
 
 
@@ -102,7 +102,7 @@ def test_run_container_command_building(docker_service):
     with patch.object(docker_service, "run_command") as mock_run:
         docker_service.run_container(
             name="r1",
-            image="itroom/python:3.11-2.300.0",
+            image="python:3.11-2.300.0",
             command="echo hi",
             env_vars={"A": "1", "B": "2"},
             detach=True,
@@ -113,7 +113,7 @@ def test_run_container_command_building(docker_service):
         assert "--name" in called_cmd and "r1" in called_cmd
         assert "--restart" in called_cmd and "always" in called_cmd
         assert "-e" in called_cmd and "A=1" in called_cmd and "B=2" in called_cmd
-        assert "itroom/python:3.11-2.300.0" in called_cmd
+        assert "python:3.11-2.300.0" in called_cmd
         assert (
             "/bin/bash" in called_cmd and "-c" in called_cmd and "echo hi" in called_cmd
         )

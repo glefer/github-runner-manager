@@ -379,8 +379,7 @@ def test_remove_runners_deleted_and_not_available(
     )
     # Vérifie affichage suppression indisponible
     assert any(
-        f"{expected_skipped_name} n'est pas disponible à la suppression" in s
-        for s in printed
+        f"{expected_skipped_name} is not available for removal" in s for s in printed
     )
 
 

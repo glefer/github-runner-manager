@@ -24,7 +24,7 @@ from src.presentation.cli.commands import app
                 "skipped": [{"id": "x", "reason": "No build_image"}],
                 "errors": [],
             },
-            ["INFO", "Pas d'image", "No build_image"],
+            ["INFO", "No image", "No build_image"],
         ),
         (
             {
@@ -32,7 +32,7 @@ from src.presentation.cli.commands import app
                 "skipped": [],
                 "errors": [{"id": "x", "reason": "Build failed"}],
             },
-            ["ERREUR", "x", "Build failed"],
+            ["ERROR", "x", "Build failed"],
         ),
         (
             {"built": [], "skipped": [], "errors": []},
@@ -60,7 +60,7 @@ def test_build_runners_images(mock_build, cli, result_data, expected):
                 "removed": [],
                 "errors": [],
             },
-            ["r1", "démarré"],
+            ["r1", "started"],
         ),
         (
             {
@@ -70,7 +70,7 @@ def test_build_runners_images(mock_build, cli, result_data, expected):
                 "removed": [],
                 "errors": [],
             },
-            ["r2", "Redémarrage"],
+            ["r2", "Restarting"],
         ),
         (
             {
@@ -80,7 +80,7 @@ def test_build_runners_images(mock_build, cli, result_data, expected):
                 "removed": [],
                 "errors": [],
             },
-            ["r3", "déjà démarré"],
+            ["r3", "already running"],
         ),
         (
             {
@@ -90,7 +90,7 @@ def test_build_runners_images(mock_build, cli, result_data, expected):
                 "removed": [{"name": "old"}],
                 "errors": [],
             },
-            ["old", "n'est plus requis"],
+            ["old", "no longer required"],
         ),
         (
             {
@@ -100,7 +100,7 @@ def test_build_runners_images(mock_build, cli, result_data, expected):
                 "removed": [],
                 "errors": [{"id": "e", "reason": "fail"}],
             },
-            ["ERREUR", "e", "fail"],
+            ["ERROR", "e", "fail"],
         ),
         (
             {
@@ -128,15 +128,15 @@ def test_start_runners(mock_start, cli, result_data, expected):
     [
         (
             {"stopped": [{"name": "r1"}], "skipped": [], "errors": []},
-            ["r1", "arrêté"],
+            ["r1", "stopped"],
         ),
         (
             {"stopped": [], "skipped": [{"name": "r2"}], "errors": []},
-            ["r2", "n'est pas en cours"],
+            ["r2", "is not running"],
         ),
         (
             {"stopped": [], "skipped": [], "errors": [{"name": "e", "reason": "fail"}]},
-            ["ERREUR", "e", "fail"],
+            ["ERROR", "e", "fail"],
         ),
         (
             {"stopped": [], "skipped": [], "errors": []},
@@ -158,13 +158,13 @@ def test_stop_runners(mock_stop, cli, result_data, expected):
     [
         (
             {"removed": [{"container": "c1"}], "skipped": [], "errors": []},
-            ["c1", "supprimé avec succès"],
+            ["c1", "removed successfully"],
             [],
         ),
         (
             {"removed": [{"name": "r"}], "skipped": [], "errors": []},
             [],
-            ["supprimé avec succès"],  # message container non attendu
+            ["removed successfully"],  # message container non attendu
         ),
         (
             {
@@ -177,7 +177,7 @@ def test_stop_runners(mock_stop, cli, result_data, expected):
         ),
         (
             {"removed": [], "skipped": [], "errors": [{"name": "e", "reason": "fail"}]},
-            ["ERREUR", "e", "fail"],
+            ["ERROR", "e", "fail"],
             [],
         ),
         (
@@ -232,10 +232,9 @@ def test_check_base_image_update_build_outputs(
 
     res = cli.invoke(app, ["check-base-image-update"])
     assert res.exit_code == 0
-    # Assert skipped line (line ~158) content fragments
-    assert "Pas d'image à builder" in res.stdout
+    print(res.stdout)
+    assert "No image to build" in res.stdout
     assert "r1" in res.stdout
-    # Assert error line (line ~163) content fragments
-    assert "ERREUR" in res.stdout
+    assert "ERROR" in res.stdout
     assert "r2" in res.stdout
     assert "Build failed" in res.stdout
